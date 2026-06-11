@@ -4,13 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Field&amp;Associate株式会社｜建設業専門コンサルティング × AI業務支援</title>
-<meta name="description" content="Field&Associateは建設業に特化したコンサルティング＆業務支援ファーム。工事コンサル、資料作成代行、入札資料作成、AIによる業務効率化で、建設業・不動産業の煩雑な業務を引き受けます。">
+<meta name="description" content="Field&Associateは建設業に特化したコンサルティング＆業務支援ファーム。工事コンサル、施工計画書・安全書類などの資料作成代行、入札資料の作成代行で、建設業・不動産業の煩雑な業務をまるごと引き受けます。相談無料。">
+<meta name="theme-color" content="#ffffff">
 <meta property="og:title" content="Field&Associate株式会社">
 <meta property="og:description" content="建設業専門コンサルティング × AI業務支援。煩雑な書類づくり・入札対応・工事コンサルをまるごと引き受けます。">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://j-site.github.io/field-associate/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffc107'/%3E%3Ctext x='32' y='44' font-family='Helvetica,Arial,sans-serif' font-size='34' font-weight='bold' text-anchor='middle' fill='%2316181d'%3EF%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"Field&Associate株式会社","url":"https://j-site.github.io/field-associate/","description":"建設業に特化したコンサルティング＆業務支援ファーム"}
+</script>
 <style>
 :root{
   --ink:#16181d;
@@ -26,6 +32,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
+::selection{background:var(--accent);color:var(--ink)}
 body{
   font-family:'Noto Sans JP','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
   color:var(--ink);
@@ -33,9 +40,19 @@ body{
   line-height:1.7;
   -webkit-font-smoothing:antialiased;
 }
-img{max-width:100%}
+img,svg{max-width:100%}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+section[id]{scroll-margin-top:76px}
+
+/* ===== Reveal animation (JS-gated) ===== */
+html.js .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+html.js .reveal.vis{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  html.js .reveal{opacity:1;transform:none;transition:none}
+  .float1,.float2{animation:none !important}
+  html{scroll-behavior:auto}
+}
 
 /* ===== Header ===== */
 header{
@@ -44,7 +61,9 @@ header{
   backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid var(--line);
+  transition:box-shadow .25s;
 }
+header.scrolled{box-shadow:0 4px 20px rgba(22,24,29,.07)}
 .header-inner{
   display:flex;align-items:center;justify-content:space-between;
   height:64px;
@@ -55,7 +74,7 @@ header{
   white-space:nowrap;
 }
 .logo .amp{color:var(--accent-ink)}
-nav{display:flex;align-items:center;gap:28px}
+nav{display:flex;align-items:center;gap:26px}
 nav a{font-size:14px;font-weight:500;color:var(--ink-2);transition:color .2s}
 nav a:hover{color:var(--ink)}
 .btn{
@@ -63,20 +82,21 @@ nav a:hover{color:var(--ink)}
   background:var(--ink);color:#fff;
   font-size:14px;font-weight:700;
   padding:10px 22px;border-radius:8px;
-  transition:opacity .2s,transform .2s;
+  transition:opacity .2s,transform .2s,background .2s;
 }
 .btn:hover{opacity:.85;transform:translateY(-1px)}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .btn-accent{background:var(--accent);color:var(--ink)}
 .btn-accent:hover{background:var(--accent-dark);color:var(--ink);opacity:1}
-.nav-links{display:flex;gap:28px;align-items:center}
-@media(max-width:640px){
+.nav-links{display:flex;gap:26px;align-items:center}
+@media(max-width:760px){
   .nav-links a:not(.btn){display:none}
 }
 
 /* ===== Hero ===== */
 .hero{
   position:relative;
-  padding:96px 0 88px;
+  padding:80px 0 72px;
   overflow:hidden;
   background:
     radial-gradient(ellipse 800px 400px at 80% -10%, rgba(255,193,7,.16), transparent),
@@ -90,11 +110,15 @@ nav a:hover{color:var(--ink)}
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
   background-size:48px 48px;
   opacity:.35;
-  mask-image:linear-gradient(180deg,rgba(0,0,0,.6),transparent 70%);
-  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.6),transparent 70%);
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.6),transparent 75%);
+  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.6),transparent 75%);
   pointer-events:none;
 }
-.hero .wrap{position:relative}
+.hero .wrap{
+  position:relative;
+  display:grid;grid-template-columns:1.05fr .95fr;
+  gap:40px;align-items:center;
+}
 .hero-tag{
   display:inline-block;
   font-size:12px;font-weight:700;letter-spacing:.08em;
@@ -102,13 +126,13 @@ nav a:hover{color:var(--ink)}
   background:var(--accent-soft);
   border:1px solid rgba(255,193,7,.45);
   padding:5px 14px;border-radius:999px;
-  margin-bottom:24px;
+  margin-bottom:22px;
 }
 .hero h1{
-  font-size:clamp(32px,5.5vw,54px);
-  font-weight:900;line-height:1.35;
+  font-size:clamp(30px,4.6vw,46px);
+  font-weight:900;line-height:1.4;
   letter-spacing:.01em;
-  margin-bottom:22px;
+  margin-bottom:20px;
 }
 .hero h1 .accent{
   color:var(--ink);
@@ -116,40 +140,42 @@ nav a:hover{color:var(--ink)}
   padding:0 .06em;border-radius:2px;
 }
 .hero p.lead{
-  font-size:clamp(15px,2vw,17px);
+  font-size:clamp(14px,1.8vw,16px);
   color:var(--ink-2);
-  max-width:560px;
-  margin-bottom:36px;
+  max-width:520px;
+  margin-bottom:30px;
 }
-.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px}
 .btn-lg{font-size:15px;padding:14px 34px;border-radius:10px}
 .btn-ghost{
   background:#fff;color:var(--ink);
   border:1px solid var(--line);
 }
 .btn-ghost:hover{opacity:1;border-color:var(--ink-3);transform:translateY(-1px)}
+.hero-trust{display:flex;gap:18px;flex-wrap:wrap;list-style:none}
+.hero-trust li{
+  font-size:12.5px;font-weight:700;color:var(--ink-2);
+  display:flex;align-items:center;gap:6px;
+}
+.hero-trust .tick{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:none;
+}
+.hero-trust .tick svg{width:9px;height:9px;stroke:var(--ink);stroke-width:3.2}
+.hero-art{position:relative}
+.hero-art svg{width:100%;height:auto;display:block}
+.float1{animation:floaty 6s ease-in-out infinite}
+.float2{animation:floaty 7s ease-in-out 1.2s infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media(max-width:900px){
+  .hero .wrap{grid-template-columns:1fr}
+  .hero-art{max-width:420px;margin:0 auto}
+}
 
-/* ===== Strengths strip ===== */
-.strengths{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg)}
-.strengths .wrap{
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:0;
-}
-.strength{
-  padding:28px 24px;
-  border-left:1px solid var(--line);
-}
-.strength:first-child{border-left:none}
-.strength b{display:block;font-size:15px;margin-bottom:4px}
-.strength span{font-size:13px;color:var(--ink-2)}
-@media(max-width:640px){
-  .strengths .wrap{grid-template-columns:1fr;padding:0 24px}
-  .strength{border-left:none;border-top:1px solid var(--line);padding:20px 0}
-  .strength:first-child{border-top:none}
-}
-
-/* ===== Sections ===== */
-section{padding:88px 0}
+/* ===== Sections (shared) ===== */
+section{padding:84px 0}
 .sec-label{
   font-family:'Inter',sans-serif;
   font-size:13px;font-weight:700;letter-spacing:.14em;
@@ -158,14 +184,41 @@ section{padding:88px 0}
   margin-bottom:12px;
 }
 .sec-title{
-  font-size:clamp(24px,3.5vw,34px);
+  font-size:clamp(23px,3.4vw,32px);
   font-weight:900;line-height:1.4;
   margin-bottom:16px;
 }
-.sec-desc{color:var(--ink-2);max-width:600px;margin-bottom:48px;font-size:15px}
+.sec-desc{color:var(--ink-2);max-width:620px;margin-bottom:46px;font-size:15px}
+
+/* ===== Pain points ===== */
+#pain{background:var(--bg-2)}
+.pain-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+  margin-bottom:44px;
+}
+.pain{
+  background:#fff;
+  border:1px solid var(--line);
+  border-left:4px solid var(--accent);
+  border-radius:12px;
+  padding:22px 24px;
+}
+.pain b{display:block;font-size:13px;color:var(--accent-ink);margin-bottom:6px;letter-spacing:.04em}
+.pain p{font-size:14.5px;font-weight:500}
+.pain-msg{
+  text-align:center;
+  font-size:clamp(18px,2.6vw,24px);
+  font-weight:900;line-height:1.6;
+}
+.pain-msg .accent{
+  background:linear-gradient(180deg,transparent 58%,var(--accent) 58%);
+  padding:0 .06em;border-radius:2px;
+}
+@media(max-width:680px){
+  .pain-grid{grid-template-columns:1fr}
+}
 
 /* ===== Services ===== */
-#services{background:var(--bg-2)}
 .services-grid{
   display:grid;grid-template-columns:repeat(2,1fr);gap:20px;
 }
@@ -192,6 +245,96 @@ section{padding:88px 0}
 @media(max-width:720px){
   .services-grid{grid-template-columns:1fr}
 }
+
+/* ===== Reasons ===== */
+#reasons{background:var(--bg-2)}
+.reasons-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:34px}
+.reason .num{
+  font-family:'Inter',sans-serif;
+  font-size:40px;font-weight:800;
+  color:var(--accent);
+  line-height:1;margin-bottom:14px;
+  text-shadow:0 1px 0 rgba(154,107,0,.25);
+}
+.reason h3{font-size:16.5px;font-weight:700;margin-bottom:8px}
+.reason p{font-size:14px;color:var(--ink-2)}
+@media(max-width:720px){
+  .reasons-grid{grid-template-columns:1fr;gap:26px}
+}
+
+/* ===== Flow ===== */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.step{position:relative;text-align:center;padding:0 6px}
+.step .num{
+  width:48px;height:48px;border-radius:50%;
+  background:var(--accent);color:var(--ink);
+  font-family:'Inter',sans-serif;font-weight:800;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+  position:relative;z-index:1;
+}
+.step:not(:last-child)::after{
+  content:"";
+  position:absolute;top:23px;left:calc(50% + 32px);
+  width:calc(100% - 64px);height:2px;
+  background:var(--line);
+}
+.step h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.step p{font-size:13px;color:var(--ink-2)}
+@media(max-width:720px){
+  .flow{grid-template-columns:1fr;gap:26px}
+  .step{text-align:left;display:grid;grid-template-columns:48px 1fr;gap:16px;align-items:start}
+  .step .num{margin:0;grid-column:1}
+  .step div:not(.num){grid-column:2}
+  .step:not(:last-child)::after{display:none}
+}
+
+/* ===== FAQ ===== */
+#faq{background:var(--bg-2)}
+.faq-list{display:grid;gap:12px;max-width:760px}
+details{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  overflow:hidden;
+}
+summary{
+  padding:18px 20px;
+  font-weight:700;font-size:15px;
+  cursor:pointer;
+  display:flex;align-items:center;gap:14px;
+  list-style:none;
+}
+summary::-webkit-details-marker{display:none}
+summary .q{
+  flex:none;
+  font-family:'Inter',sans-serif;font-weight:800;
+  color:var(--accent-ink);
+}
+summary .plus{
+  margin-left:auto;flex:none;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent-soft);
+  color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:15px;line-height:1;
+  transition:transform .25s;
+}
+details[open] summary .plus{transform:rotate(45deg)}
+.faq-a{padding:0 20px 18px 54px;color:var(--ink-2);font-size:14px}
+
+/* ===== CTA band ===== */
+.cta-band{
+  background:var(--accent);
+  padding:56px 0;
+}
+.cta-band .wrap{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:24px;flex-wrap:wrap;
+}
+.cta-band h2{font-size:clamp(20px,3vw,28px);font-weight:900;line-height:1.5}
+.cta-band .btn{background:var(--ink);color:#fff}
+.cta-band .btn:hover{opacity:.85}
 
 /* ===== Contact ===== */
 #contact .wrap{max-width:680px}
@@ -243,26 +386,31 @@ section{padding:88px 0}
 /* ===== Footer ===== */
 footer{
   border-top:1px solid var(--line);
-  padding:36px 0;
+  padding:40px 0;
   background:var(--bg-2);
 }
 .footer-inner{
   display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:12px;
+  flex-wrap:wrap;gap:16px;
 }
 .footer-logo{font-family:'Inter',sans-serif;font-weight:700;font-size:15px}
 .footer-logo .amp{color:var(--accent-ink)}
-footer small{color:var(--ink-3);font-size:12px}
+.footer-nav{display:flex;gap:20px;flex-wrap:wrap}
+.footer-nav a{font-size:13px;color:var(--ink-2)}
+.footer-nav a:hover{color:var(--ink)}
+footer small{color:var(--ink-3);font-size:12px;width:100%;}
 </style>
 </head>
 <body>
+<script>document.documentElement.classList.add('js')</script>
 
-<header>
+<header id="top">
   <div class="wrap header-inner">
-    <a class="logo" href="#">Field<span class="amp">&amp;</span>Associate</a>
+    <a class="logo" href="#top">Field<span class="amp">&amp;</span>Associate</a>
     <nav class="nav-links">
       <a href="#services">サービス</a>
-      <a href="#contact">お問い合わせ</a>
+      <a href="#flow">ご依頼の流れ</a>
+      <a href="#faq">よくある質問</a>
       <a class="btn btn-accent" href="#contact">相談する</a>
     </nav>
   </div>
@@ -270,39 +418,132 @@ footer small{color:var(--ink-3);font-size:12px}
 
 <section class="hero">
   <div class="wrap">
-    <span class="hero-tag">建設業専門コンサルティング × AI</span>
-    <h1>現場に、もっと時間を。<br>煩雑な業務は、<span class="accent">私たちにおまかせ</span>。</h1>
-    <p class="lead">Field&amp;Associateは、建設業に特化したコンサルティング＆業務支援ファームです。工事のコンサルティングから書類・入札資料の作成代行まで、建設業・不動産業の「煩わしい」をまるごと引き受けます。</p>
-    <div class="hero-cta">
-      <a class="btn btn-accent btn-lg" href="#contact">無料で相談する</a>
-      <a class="btn btn-ghost btn-lg" href="#services">サービスを見る</a>
+    <div>
+      <span class="hero-tag">建設業専門コンサルティング × AI</span>
+      <h1>現場に、もっと時間を。<br>煩雑な業務は、<span class="accent">私たちにおまかせ</span>。</h1>
+      <p class="lead">Field&amp;Associateは、建設業に特化したコンサルティング＆業務支援ファームです。工事のコンサルティングから書類・入札資料の作成代行まで、建設業・不動産業の「煩わしい」をまるごと引き受けます。</p>
+      <div class="hero-cta">
+        <a class="btn btn-accent btn-lg" href="#contact">無料で相談する</a>
+        <a class="btn btn-ghost btn-lg" href="#services">サービスを見る</a>
+      </div>
+      <ul class="hero-trust">
+        <li><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.5 2.5L10 3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>相談・お見積り無料</li>
+        <li><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.5 2.5L10 3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>オンラインで全国対応</li>
+        <li><span class="tick"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.5 2.5L10 3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>書類1件からOK</li>
+      </ul>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 520 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="クレーンが書類を引き受けるイラスト">
+        <!-- sun -->
+        <circle cx="402" cy="92" r="54" fill="var(--accent)" opacity=".9"/>
+        <!-- back buildings -->
+        <g stroke="#cbd5e1" stroke-width="2" fill="#ffffff">
+          <rect x="300" y="178" width="92" height="222" rx="3"/>
+          <rect x="402" y="244" width="72" height="156" rx="3"/>
+          <rect x="248" y="262" width="62" height="138" rx="3" fill="#f5f6f8"/>
+        </g>
+        <!-- windows -->
+        <g fill="#e8ebef">
+          <rect x="314" y="196" width="14" height="16" rx="2"/><rect x="338" y="196" width="14" height="16" rx="2"/><rect x="362" y="196" width="14" height="16" rx="2"/>
+          <rect x="314" y="226" width="14" height="16" rx="2"/><rect x="338" y="226" width="14" height="16" rx="2"/><rect x="362" y="226" width="14" height="16" rx="2"/>
+          <rect x="314" y="256" width="14" height="16" rx="2"/><rect x="338" y="256" width="14" height="16" rx="2"/><rect x="362" y="256" width="14" height="16" rx="2"/>
+          <rect x="314" y="286" width="14" height="16" rx="2"/><rect x="338" y="286" width="14" height="16" rx="2"/><rect x="362" y="286" width="14" height="16" rx="2"/>
+          <rect x="416" y="262" width="13" height="14" rx="2"/><rect x="440" y="262" width="13" height="14" rx="2"/>
+          <rect x="416" y="290" width="13" height="14" rx="2"/><rect x="440" y="290" width="13" height="14" rx="2"/>
+          <rect x="416" y="318" width="13" height="14" rx="2"/><rect x="440" y="318" width="13" height="14" rx="2"/>
+          <rect x="262" y="280" width="12" height="13" rx="2"/><rect x="284" y="280" width="12" height="13" rx="2"/>
+          <rect x="262" y="306" width="12" height="13" rx="2"/><rect x="284" y="306" width="12" height="13" rx="2"/>
+          <rect x="262" y="332" width="12" height="13" rx="2"/><rect x="284" y="332" width="12" height="13" rx="2"/>
+        </g>
+        <!-- crane -->
+        <g stroke="#9ca3af" stroke-width="3" fill="none" stroke-linecap="round">
+          <line x1="103" y1="400" x2="103" y2="130"/>
+          <line x1="117" y1="400" x2="117" y2="130"/>
+          <line x1="103" y1="170" x2="117" y2="150"/>
+          <line x1="103" y1="210" x2="117" y2="190"/>
+          <line x1="103" y1="250" x2="117" y2="230"/>
+          <line x1="103" y1="290" x2="117" y2="270"/>
+          <line x1="103" y1="330" x2="117" y2="310"/>
+          <line x1="103" y1="370" x2="117" y2="350"/>
+          <!-- jib -->
+          <line x1="48" y1="120" x2="318" y2="120"/>
+          <!-- ties -->
+          <line x1="110" y1="92" x2="318" y2="120"/>
+          <line x1="110" y1="92" x2="48" y2="120"/>
+          <!-- apex -->
+          <line x1="110" y1="92" x2="110" y2="120"/>
+          <!-- counterweight -->
+          <rect x="44" y="124" width="26" height="18" rx="3" fill="#f5f6f8" stroke="#9ca3af"/>
+          <!-- cable -->
+          <line x1="272" y1="120" x2="272" y2="196" stroke-width="2"/>
+        </g>
+        <!-- cab -->
+        <rect x="92" y="112" width="36" height="22" rx="4" fill="#ffffff" stroke="#9ca3af" stroke-width="3"/>
+        <!-- hook -->
+        <circle cx="272" cy="200" r="5" fill="#9ca3af"/>
+        <!-- hanging document (lifted by crane) -->
+        <g class="float1">
+          <rect x="236" y="208" width="74" height="92" rx="9" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5"/>
+          <g stroke="#e0e3e8" stroke-width="4" stroke-linecap="round">
+            <line x1="250" y1="228" x2="296" y2="228"/>
+            <line x1="250" y1="244" x2="296" y2="244"/>
+            <line x1="250" y1="260" x2="282" y2="260"/>
+          </g>
+          <circle cx="290" cy="282" r="12" fill="var(--accent)"/>
+          <path d="M284.5 282l4 4 7-7.5" stroke="#16181d" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <!-- floating mini docs -->
+        <g class="float2">
+          <rect x="150" y="52" width="96" height="28" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <circle cx="167" cy="66" r="7" fill="var(--accent)"/>
+          <path d="M163.8 66l2.4 2.4 4-4.4" stroke="#16181d" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="182" y1="66" x2="232" y2="66" stroke="#e0e3e8" stroke-width="4" stroke-linecap="round"/>
+        </g>
+        <g class="float1">
+          <rect x="368" y="158" width="96" height="28" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <circle cx="385" cy="172" r="7" fill="var(--accent)"/>
+          <path d="M381.8 172l2.4 2.4 4-4.4" stroke="#16181d" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="400" y1="172" x2="450" y2="172" stroke="#e0e3e8" stroke-width="4" stroke-linecap="round"/>
+        </g>
+        <!-- ground -->
+        <line x1="24" y1="400" x2="496" y2="400" stroke="#e5e7eb" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
     </div>
   </div>
 </section>
 
-<div class="strengths">
+<section id="pain">
   <div class="wrap">
-    <div class="strength">
-      <b>建設業界の実務知見</b>
-      <span>現場を知るからこそ、実務に即した支援ができます。</span>
+    <div class="sec-label reveal">Problem</div>
+    <h2 class="sec-title reveal">こんな「煩わしさ」、ありませんか？</h2>
+    <div class="pain-grid stagger">
+      <div class="pain">
+        <b>入札対応</b>
+        <p>入札に挑戦したいが、申請書類や技術資料が複雑で手が回らない</p>
+      </div>
+      <div class="pain">
+        <b>現場書類</b>
+        <p>現場が忙しく、施工計画書や安全書類づくりがいつも後回しになる</p>
+      </div>
+      <div class="pain">
+        <b>見積の妥当性</b>
+        <p>業者からもらった見積が適正なのか、専門家の目でチェックしてほしい</p>
+      </div>
+      <div class="pain">
+        <b>事務負担</b>
+        <p>日々の事務作業に追われて、現場や営業など本業に集中できない</p>
+      </div>
     </div>
-    <div class="strength">
-      <b>専門性 × AI活用</b>
-      <span>専門知識とAIを組み合わせ、速く・正確に対応します。</span>
-    </div>
-    <div class="strength">
-      <b>必要な分だけ、柔軟に</b>
-      <span>書類1件から継続支援まで。規模を問わずご依頼いただけます。</span>
-    </div>
+    <p class="pain-msg reveal">その「煩わしい」、<span class="accent">まるごと引き受けます</span>。</p>
   </div>
-</div>
+</section>
 
 <section id="services">
   <div class="wrap">
-    <div class="sec-label">Services</div>
-    <h2 class="sec-title">サービス内容</h2>
-    <p class="sec-desc">建設業・不動産業の皆さまが「本業に集中できる」環境づくりを、専門知識とAIでサポートします。</p>
-    <div class="services-grid">
+    <div class="sec-label reveal">Services</div>
+    <h2 class="sec-title reveal">サービス内容</h2>
+    <p class="sec-desc reveal">建設業・不動産業の皆さまが「本業に集中できる」環境づくりを、専門知識とAIでサポートします。</p>
+    <div class="services-grid stagger">
 
       <div class="service">
         <div class="icon">
@@ -330,7 +571,7 @@ footer small{color:var(--ink-3);font-size:12px}
 
       <div class="service">
         <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 4.5-3 5.7V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.3C6.2 13.5 5 11.4 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
         </div>
         <h3>業務効率化・DX支援</h3>
         <p>AIなどの最新技術は私たちが使いこなし、見積・書類業務をスピーディかつ正確に。お客様の手間を増やさず、対応の速さと品質を高めます。</p>
@@ -340,20 +581,115 @@ footer small{color:var(--ink-3);font-size:12px}
   </div>
 </section>
 
+<section id="reasons">
+  <div class="wrap">
+    <div class="sec-label reveal">Why Us</div>
+    <h2 class="sec-title reveal">Field&amp;Associateが選ばれる理由</h2>
+    <div class="reasons-grid stagger">
+      <div class="reason">
+        <div class="num">01</div>
+        <h3>建設業界の実務知見</h3>
+        <p>現場を知るからこそ、書類もご提案も「実務でそのまま使える」品質で仕上げます。机上の空論はありません。</p>
+      </div>
+      <div class="reason">
+        <div class="num">02</div>
+        <h3>専門性 × AI活用</h3>
+        <p>専門知識とAIを組み合わせ、速く・正確に対応します。最新技術を使いこなすのは私たち。お客様の手間は増やしません。</p>
+      </div>
+      <div class="reason">
+        <div class="num">03</div>
+        <h3>必要な分だけ、柔軟に</h3>
+        <p>書類1件のスポット依頼から継続的な業務支援まで、規模を問わず承ります。「これだけお願いしたい」も歓迎です。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="sec-label reveal">Flow</div>
+    <h2 class="sec-title reveal">ご依頼の流れ</h2>
+    <p class="sec-desc reveal">ご相談からご納品まで、シンプルな4ステップ。まずはお気軽にご相談ください。</p>
+    <div class="flow stagger">
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>無料相談</h3>
+          <p>フォームからお気軽に。オンラインで全国対応します。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>ヒアリング・お見積り</h3>
+          <p>内容を伺い、最適な進め方と費用をご提案します。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>業務実施</h3>
+          <p>専門知識×最新技術で、速く・正確に対応します。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
+        <div>
+          <h3>納品・アフターフォロー</h3>
+          <p>納品後の修正やご相談にも継続して対応します。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-label reveal">FAQ</div>
+    <h2 class="sec-title reveal">よくある質問</h2>
+    <div class="faq-list stagger">
+      <details>
+        <summary><span class="q">Q</span>小さな依頼でもお願いできますか？<span class="plus">＋</span></summary>
+        <p class="faq-a">はい、書類1件から承ります。「この書類だけ手伝ってほしい」というスポットのご依頼も歓迎です。</p>
+      </details>
+      <details>
+        <summary><span class="q">Q</span>費用はどのくらいかかりますか？<span class="plus">＋</span></summary>
+        <p class="faq-a">内容や分量に応じて個別にお見積りします。ご相談・お見積りは無料ですので、まずはお気軽にお問い合わせください。</p>
+      </details>
+      <details>
+        <summary><span class="q">Q</span>対応エリアはどこまでですか？<span class="plus">＋</span></summary>
+        <p class="faq-a">資料作成やコンサルティングはオンラインを中心に全国対応しています。現地での対応が必要な場合は、別途ご相談ください。</p>
+      </details>
+      <details>
+        <summary><span class="q">Q</span>急ぎの案件でも対応できますか？<span class="plus">＋</span></summary>
+        <p class="faq-a">まずはご相談ください。納期やご状況に応じて、可能な限り柔軟に調整いたします。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<div class="cta-band">
+  <div class="wrap">
+    <h2>現場に、もっと時間を。<br>まずは無料相談から始めませんか？</h2>
+    <a class="btn btn-lg" href="#contact">無料で相談する</a>
+  </div>
+</div>
+
 <section id="contact">
   <div class="wrap">
-    <div class="sec-label">Contact</div>
-    <h2 class="sec-title">お問い合わせ</h2>
-    <p class="sec-desc">サービスに関するご相談・ご質問など、お気軽にお問い合わせください。通常2営業日以内にご返信いたします。</p>
+    <div class="sec-label reveal">Contact</div>
+    <h2 class="sec-title reveal">お問い合わせ</h2>
+    <p class="sec-desc reveal">サービスに関するご相談・ご質問など、お気軽にお問い合わせください。通常2営業日以内にご返信いたします。</p>
 
     <!--
       フォーム送信は FormSubmit (https://formsubmit.co/) を利用。
       action のメールアドレスを実際の受信先に書き換えると、初回送信時に
       FormSubmit から確認メールが届き、承認後に有効化される。
     -->
-    <form class="form-card" action="https://formsubmit.co/REPLACE_WITH_YOUR_EMAIL@example.com" method="POST">
+    <form class="form-card reveal" action="https://formsubmit.co/REPLACE_WITH_YOUR_EMAIL@example.com" method="POST">
       <input type="hidden" name="_subject" value="【Field&Associate】ホームページからのお問い合わせ">
       <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_template" value="table">
       <input type="text" name="_honey" style="display:none">
 
       <div class="field">
@@ -385,9 +721,32 @@ footer small{color:var(--ink-3);font-size:12px}
 <footer>
   <div class="wrap footer-inner">
     <span class="footer-logo">Field<span class="amp">&amp;</span>Associate</span>
+    <nav class="footer-nav">
+      <a href="#services">サービス</a>
+      <a href="#flow">ご依頼の流れ</a>
+      <a href="#faq">よくある質問</a>
+      <a href="#contact">お問い合わせ</a>
+    </nav>
     <small>&copy; Field&amp;Associate Inc. All rights reserved.</small>
   </div>
 </footer>
 
+<script>
+// header shadow on scroll
+var hd = document.querySelector('header');
+addEventListener('scroll', function(){ hd.classList.toggle('scrolled', scrollY > 8); }, {passive:true});
+
+// scroll reveal (staggered children)
+document.querySelectorAll('.stagger > *').forEach(function(el, i){
+  el.classList.add('reveal');
+  el.style.transitionDelay = (i % 6) * 70 + 'ms';
+});
+var io = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); }
+  });
+}, {threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+</script>
 </body>
 </html>
