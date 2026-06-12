@@ -681,40 +681,11 @@ footer small{color:var(--ink-3);font-size:12px;width:100%;}
     <h2 class="sec-title reveal">お問い合わせ</h2>
     <p class="sec-desc reveal">サービスに関するご相談・ご質問など、お気軽にお問い合わせください。通常2営業日以内にご返信いたします。</p>
 
-    <!--
-      フォーム送信は FormSubmit (https://formsubmit.co/) を利用。
-      action のメールアドレスを実際の受信先に書き換えると、初回送信時に
-      FormSubmit から確認メールが届き、承認後に有効化される。
-    -->
-    <form class="form-card reveal" action="https://formsubmit.co/l353.lamborghini@gmail.com" method="POST">
-      <input type="hidden" name="_subject" value="【Field&Associate】ホームページからのお問い合わせ">
-      <input type="hidden" name="_captcha" value="false">
-      <input type="hidden" name="_template" value="table">
-      <input type="text" name="_honey" style="display:none">
-
-      <div class="field">
-        <label>会社名<span class="opt">任意</span></label>
-        <input type="text" name="会社名" placeholder="株式会社○○建設">
-      </div>
-      <div class="field">
-        <label>お名前<span class="req">必須</span></label>
-        <input type="text" name="お名前" required placeholder="山田 太郎">
-      </div>
-      <div class="field">
-        <label>メールアドレス<span class="req">必須</span></label>
-        <input type="email" name="メールアドレス" required placeholder="info@example.com">
-      </div>
-      <div class="field">
-        <label>電話番号<span class="opt">任意</span></label>
-        <input type="tel" name="電話番号" placeholder="090-0000-0000">
-      </div>
-      <div class="field">
-        <label>お問い合わせ内容<span class="req">必須</span></label>
-        <textarea name="お問い合わせ内容" required placeholder="ご相談内容をご記入ください"></textarea>
-      </div>
-      <button class="btn btn-accent btn-lg" type="submit">送信する</button>
-      <p class="form-note">送信いただいた内容は、お問い合わせ対応の目的にのみ利用します。</p>
-    </form>
+    <div class="form-card reveal" style="padding:0;overflow:hidden;border-radius:12px">
+      <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdBUp0AiToCTNpuIc2SUtL-OgPQmXUOQzQvQeFdxQH2OiliqA/viewform?embedded=true"
+        width="100%" height="820" frameborder="0" marginheight="0" marginwidth="0"
+        style="display:block;border:none">読み込んでいます…</iframe>
+    </div>
   </div>
 </section>
 
