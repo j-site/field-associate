@@ -1,0 +1,96 @@
+---
+layout: none
+title: ブログ | Field&Associate株式会社
+---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ブログ | Field&Associate株式会社</title>
+<meta name="description" content="建設業の現場で役立つ情報、業務効率化のヒント、AI活用事例などをお届けします。">
+{% seo %}
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffc107'/%3E%3Ctext x='32' y='44' font-family='Helvetica,Arial,sans-serif' font-size='34' font-weight='bold' text-anchor='middle' fill='%2316181d'%3EF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16181d;--ink-2:#4b5563;--ink-3:#9ca3af;
+  --bg:#ffffff;--bg-2:#f5f6f8;--line:#e5e7eb;
+  --accent:#ffc107;--accent-dark:#e0a800;--accent-ink:#9a6b00;
+  --accent-soft:rgba(255,193,7,.16);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+::selection{background:var(--accent);color:var(--ink)}
+body{font-family:'Noto Sans JP','Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between;max-width:1080px;margin:0 auto;padding:0 24px}
+.logo{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.amp{color:var(--accent-ink);margin:0 1px}
+nav{display:flex;align-items:center;gap:26px}
+nav a{font-size:14px;font-weight:500;color:var(--ink-2);transition:color .2s}
+nav a:hover{color:var(--ink)}
+.btn{display:inline-block;background:var(--ink);color:#fff;font-size:14px;font-weight:700;padding:10px 22px;border-radius:8px;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn-accent{background:var(--accent);color:var(--ink)}
+.btn-accent:hover{background:var(--accent-dark)}
+@media(max-width:760px){nav a:not(.btn){display:none}}
+
+.blog-hero{padding:60px 0 40px;text-align:center;background:linear-gradient(180deg,#fafbfc 0%,#fff 100%);border-bottom:1px solid var(--line)}
+.blog-hero h1{font-size:32px;font-weight:900}
+.blog-hero p{color:var(--ink-2);margin-top:8px}
+
+.posts{max-width:760px;margin:0 auto;padding:40px 24px 80px}
+.post-card{display:block;padding:28px 0;border-bottom:1px solid var(--line);transition:background .2s}
+.post-card:hover{background:var(--accent-soft);margin:0 -16px;padding:28px 16px;border-radius:8px;border-color:transparent}
+.post-card-meta{font-size:13px;color:var(--ink-3);margin-bottom:4px}
+.post-card-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.post-card-excerpt{color:var(--ink-2);font-size:15px}
+.post-card-category{display:inline-block;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;margin-left:8px}
+
+.empty{text-align:center;padding:80px 24px;color:var(--ink-3)}
+
+footer{border-top:1px solid var(--line);padding:32px 0;text-align:center}
+footer small{color:var(--ink-3);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/">Field<span class="amp">&amp;</span>Associate</a>
+    <nav>
+      <a href="/#services">サービス</a>
+      <a href="/blog/" style="color:var(--ink);font-weight:700">ブログ</a>
+      <a class="btn btn-accent" href="/#contact">相談する</a>
+    </nav>
+  </div>
+</header>
+
+<div class="blog-hero">
+  <h1>ブログ</h1>
+  <p>建設業の現場で役立つ情報をお届けします</p>
+</div>
+
+<div class="posts">
+  {% if site.posts.size > 0 %}
+    {% for post in site.posts %}
+    <a class="post-card" href="{{ post.url }}">
+      <p class="post-card-meta">{{ post.date | date: "%Y年%m月%d日" }}{% if post.category %}<span class="post-card-category">{{ post.category }}</span>{% endif %}</p>
+      <h2 class="post-card-title">{{ post.title }}</h2>
+      <p class="post-card-excerpt">{{ post.excerpt | strip_html | truncate: 120 }}</p>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div class="empty"><p>記事の準備中です。</p></div>
+  {% endif %}
+</div>
+
+<footer>
+  <small>&copy; Field&amp;Associate Inc. All rights reserved.</small>
+</footer>
+</body>
+</html>

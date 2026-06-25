@@ -1,0 +1,24 @@
+title: "Field&Associate株式会社"
+description: "建設業専門コンサルティング × AI業務支援。工事コンサル・書類作成代行・入札対応をまるごと引き受けます。"
+url: "https://j-harvard.com"
+baseurl: ""
+lang: ja
+
+permalink: /blog/:year/:month/:day/:title/
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-feed
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
