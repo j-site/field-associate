@@ -1,0 +1,16 @@
+{
+  "name": "jarvisagents",
+  "version": "2.0.0",
+  "description": "JarvisAgents 2.0 - CLI multi-agent orchestration tool powered by Claude",
+  "type": "module",
+  "bin": {
+    "jarvis": "./bin/jarvis.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "commander": "^12.1.0"
+  }
+}
