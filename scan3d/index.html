@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ScanFix｜3Dスキャン修復・プリント準備ツール</title>
+<meta name="description" content="3Dスキャンデータ（OBJ/STL/PLY）を読み込み、穴埋め・法線修復・スケール調整・軽量化してから3Dプリント用にSTL/OBJ出力するブラウザツール。">
+<meta name="theme-color" content="#16181d">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316181d'/%3E%3Cpath d='M20 44V20h14a8 8 0 0 1 0 16H24' stroke='%23ffc107' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.min.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
+<style>
+:root{
+  --ink:#16181d;
+  --ink-2:#4b5563;
+  --ink-3:#9ca3af;
+  --bg:#ffffff;
+  --bg-2:#f5f6f8;
+  --line:#e5e7eb;
+  --accent:#ffc107;
+  --accent-dark:#e0a800;
+  --accent-ink:#9a6b00;
+  --accent-soft:rgba(255,193,7,.16);
+  --ok:#10b981;
+  --ok-soft:rgba(16,185,129,.14);
+  --warn:#f59e0b;
+  --warn-soft:rgba(245,158,11,.14);
+  --danger:#ef4444;
+  --danger-soft:rgba(239,68,68,.12);
+  --panel-w:380px;
+  --bar-h:56px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Noto Sans JP','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  color:var(--ink);background:var(--bg);
+  line-height:1.6;-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input{font-family:inherit}
+::selection{background:var(--accent);color:var(--ink)}
+
+/* ===== App bar ===== */
+.app-bar{
+  position:fixed;top:0;left:0;right:0;height:var(--bar-h);z-index:900;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 16px;background:var(--ink);color:#fff;
+}
+.brand{display:flex;align-items:center;gap:9px;font-family:'Inter',sans-serif;font-weight:800;font-size:16px;letter-spacing:.01em}
+.brand svg{width:26px;height:26px;flex:none}
+.brand .b2{color:var(--accent)}
+.bar-right{display:flex;align-items:center;gap:10px}
+.filename{font-size:12.5px;color:rgba(255,255,255,.6);max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.12);color:#fff;
+  font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;
+  transition:.18s;white-space:nowrap;
+}
+.btn:hover{background:rgba(255,255,255,.2)}
+.btn.y{background:var(--accent);color:var(--ink)}
+.btn.y:hover{background:var(--accent-dark)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ===== Layout ===== */
+.app{position:fixed;inset:var(--bar-h) 0 0 0;display:flex}
+.panel{
+  width:var(--panel-w);flex:none;background:#fff;border-right:1px solid var(--line);
+  overflow-y:auto;overscroll-behavior:contain;padding:18px 18px 40px;
+}
+.stage{position:relative;flex:1;min-width:0;background:var(--bg-2)}
+#canvas-wrap{position:absolute;inset:0}
+#canvas-wrap canvas{display:block;width:100%;height:100%}
+
+.drop{
+  position:absolute;inset:16px;border:2px dashed var(--line);border-radius:16px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  background:rgba(255,255,255,.7);backdrop-filter:blur(2px);
+  transition:.15s;z-index:5;
+}
+.drop.hide{display:none}
+.drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+.drop-inner{max-width:320px}
+.drop-ic{width:52px;height:52px;margin:0 auto 14px;color:var(--ink-3)}
+.drop h2{font-size:16px;font-weight:800;margin-bottom:6px}
+.drop p{font-size:12.5px;color:var(--ink-2);margin-bottom:16px}
+.drop input[type=file]{display:none}
+
+.hud{position:absolute;left:14px;top:14px;z-index:6;display:flex;flex-direction:column;gap:8px}
+.hud-chip{
+  background:rgba(22,24,29,.86);color:#fff;font-size:11.5px;font-weight:700;
+  padding:7px 12px;border-radius:8px;backdrop-filter:blur(6px);
+  display:flex;align-items:center;gap:7px;
+}
+.hud-chip .d{width:7px;height:7px;border-radius:50%;flex:none}
+.hud-chip .d.ok{background:var(--ok)}
+.hud-chip .d.warn{background:var(--warn)}
+.hud-chip .d.bad{background:var(--danger)}
+.view-tools{position:absolute;right:14px;top:14px;z-index:6;display:flex;flex-direction:column;gap:8px}
+.vt-btn{
+  width:38px;height:38px;border-radius:10px;background:#fff;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(22,24,29,.1);transition:.15s;
+}
+.vt-btn:hover{border-color:var(--ink-3)}
+.vt-btn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink)}
+.vt-btn[aria-pressed="true"] svg{stroke:#fff;fill:#fff}
+.vt-btn svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:1.8}
+
+.progress-wrap{
+  position:absolute;left:16px;right:16px;bottom:16px;z-index:6;
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 15px;
+  box-shadow:0 8px 26px rgba(22,24,29,.14);display:none;
+}
+.progress-wrap.on{display:block}
+.progress-wrap .pt{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-bottom:8px}
+.progress-wrap .pt span:last-child{color:var(--ink-3);font-weight:600}
+.pbar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .25s}
+
+/* ===== Panel ===== */
+.eyebrow{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:7px}
+h1.t{font-size:19px;font-weight:900;line-height:1.4;margin-bottom:5px}
+p.sub{font-size:12.5px;color:var(--ink-2);margin-bottom:16px}
+.section{border-top:1px solid var(--line);padding:16px 0}
+.section:first-of-type{border-top:0;padding-top:0}
+.section h3{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--ink);margin-bottom:11px;display:flex;align-items:center;justify-content:space-between}
+.section h3 small{font-size:10.5px;font-weight:700;color:var(--ink-3)}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.stat .k{font-size:10px;font-weight:700;color:var(--ink-3);letter-spacing:.03em;margin-bottom:2px}
+.stat .v{font-family:'Inter',sans-serif;font-size:15px;font-weight:800}
+.stat .v small{font-size:11px;font-weight:600;color:var(--ink-3)}
+
+.check-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+.check-row:last-child{border-bottom:0}
+.check-row .lb{display:flex;align-items:center;gap:8px;font-weight:600}
+.pill{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:#047857}
+.pill.warn{background:var(--warn-soft);color:#92400e}
+.pill.bad{background:var(--danger-soft);color:#b91c1c}
+.pill.idle{background:var(--bg-2);color:var(--ink-3)}
+
+.op{
+  display:flex;align-items:flex-start;gap:11px;
+  border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:9px;
+  transition:.15s;
+}
+.op:hover{border-color:var(--ink-3)}
+.op .ic{width:32px;height:32px;border-radius:9px;background:var(--bg-2);flex:none;display:flex;align-items:center;justify-content:center}
+.op .ic svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.8}
+.op .f{flex:1;min-width:0}
+.op .nm{font-size:13px;font-weight:800;margin-bottom:2px}
+.op .ds{font-size:11px;color:var(--ink-2);line-height:1.5;margin-bottom:8px}
+.op .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mini-btn{
+  font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:7px;
+  background:var(--ink);color:#fff;transition:.15s;
+}
+.mini-btn:hover{opacity:.85}
+.mini-btn:disabled{opacity:.3;cursor:not-allowed}
+.mini-btn.gh{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.mini-btn.gh:hover{border-color:var(--ink-3)}
+.op input[type=number]{
+  width:64px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12.5px;font-weight:700;
+}
+.op input[type=range]{flex:1;min-width:80px;accent-color:var(--ink)}
+.op select{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;font-weight:700;background:#fff}
+.op .val{font-size:11.5px;font-weight:800;color:var(--accent-ink);min-width:34px;text-align:right}
+.op.done{border-color:var(--ok);background:#f0fdf9}
+.op.done .ic{background:var(--ok-soft)}
+.op.done .ic svg{stroke:#047857}
+
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.export-btn{
+  border:1.5px solid var(--ink);border-radius:11px;padding:13px 10px;text-align:center;
+  background:var(--ink);color:#fff;transition:.15s;
+}
+.export-btn:hover{opacity:.87;transform:translateY(-1px)}
+.export-btn .fmt{font-family:'Inter',sans-serif;font-weight:900;font-size:15px;display:block}
+.export-btn .note{font-size:10px;font-weight:600;color:rgba(255,255,255,.65);display:block;margin-top:2px}
+.export-hint{font-size:11px;color:var(--ink-3);line-height:1.6}
+
+.empty-note{font-size:12.5px;color:var(--ink-3);text-align:center;padding:30px 10px;border:1px dashed var(--line);border-radius:12px}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+  background:var(--ink);color:#fff;font-size:13px;font-weight:700;
+  padding:11px 20px;border-radius:10px;z-index:1200;
+  opacity:0;pointer-events:none;transition:.3s;box-shadow:0 8px 26px rgba(0,0,0,.3);
+  max-width:88vw;text-align:center;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.err{background:#7f1d1d}
+
+@media(max-width:860px){
+  :root{--panel-w:100%}
+  .app{flex-direction:column-reverse}
+  .panel{width:100%;max-height:56vh;border-right:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -6px 26px rgba(22,24,29,.14)}
+  .stage{flex:1;min-height:30vh}
+  .filename{max-width:26vw}
+}
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="brand">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#ffc107"/><path d="M20 44V20h14a8 8 0 0 1 0 16H24" stroke="#16181d" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Scan<span class="b2">Fix</span></span>
+  </div>
+  <div class="bar-right">
+    <span class="filename" id="filename"></span>
+    <button class="btn" id="btn-open">読み込む</button>
+    <button class="btn y" id="btn-reset" style="display:none">新しいファイル</button>
+  </div>
+</header>
+
+<main class="app">
+  <aside class="panel">
+    <div id="panel-empty">
+      <div class="eyebrow">Scan Repair</div>
+      <h1 class="t">3Dスキャンを、印刷できる形に。</h1>
+      <p class="sub">スマホの3Dスキャンアプリなどで撮ったOBJ / STL / PLY を読み込むと、穴・法線・スケールをチェックし、修復してからプリント用データとして書き出せます。</p>
+      <div class="empty-note">まだファイルが読み込まれていません。<br>右上の「読み込む」または中央にファイルをドロップしてください。</div>
+    </div>
+
+    <div id="panel-loaded" style="display:none">
+      <div class="section">
+        <h3>メッシュ情報</h3>
+        <div class="stat-grid">
+          <div class="stat"><div class="k">頂点数</div><div class="v" id="st-verts">—</div></div>
+          <div class="stat"><div class="k">面数</div><div class="v" id="st-faces">—</div></div>
+          <div class="stat"><div class="k">サイズ (X×Y×Z)</div><div class="v" id="st-size" style="font-size:12.5px">—</div></div>
+          <div class="stat"><div class="k">推定体積</div><div class="v" id="st-vol">—</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>プリント適性チェック <small id="check-summary">—</small></h3>
+        <div class="check-row"><span class="lb">水密性（穴なし）</span><span class="pill idle" id="chk-watertight">未検査</span></div>
+        <div class="check-row"><span class="lb">法線の向き</span><span class="pill idle" id="chk-normals">未検査</span></div>
+        <div class="check-row"><span class="lb">孤立した破片</span><span class="pill idle" id="chk-islands">未検査</span></div>
+        <div class="check-row"><span class="lb">重複頂点</span><span class="pill idle" id="chk-dup">未検査</span></div>
+      </div>
+
+      <div class="section">
+        <h3>修復</h3>
+
+        <div class="op" id="op-weld">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="2.6"/><circle cx="16" cy="16" r="2.6"/><path d="M10 10l4 4" stroke-dasharray="2 2"/></svg></div>
+          <div class="f">
+            <div class="nm">近接頂点を結合</div>
+            <div class="ds">スキャン特有の重複・微小な隙間を1点にまとめ、後続の修復を安定させます。</div>
+            <div class="row">
+              <button class="mini-btn" id="btn-weld">実行</button>
+              <input type="range" id="rng-weld" min="1" max="4" value="2" step="1">
+              <span class="val" id="val-weld">0.2mm</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="op" id="op-islands">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="19" cy="6" r="2"/></svg></div>
+          <div class="f">
+            <div class="nm">孤立した破片を除去</div>
+            <div class="ds">本体から浮いた小さなノイズ片（点群のはみ出し等）を削除します。</div>
+            <div class="row">
+              <button class="mini-btn" id="btn-islands">実行</button>
+              <span class="val" id="val-islands" style="color:var(--ink-3)">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="op" id="op-normals">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v14M12 3l-4 4M12 3l4 4"/><path d="M5 21h14"/></svg></div>
+          <div class="f">
+            <div class="nm">法線を統一</div>
+            <div class="ds">面の向きが裏返っている部分を検出し、外向きに揃えます。</div>
+            <div class="row"><button class="mini-btn" id="btn-normals">実行</button></div>
+          </div>
+        </div>
+
+        <div class="op" id="op-holes">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 16 0 8 8 0 0 1-16 0z" stroke-dasharray="2.4 2.4"/></svg></div>
+          <div class="f">
+            <div class="nm">穴を塞ぐ</div>
+            <div class="ds">境界ループを検出し、平面的な穴を三角形分割で埋めて水密にします。</div>
+            <div class="row"><button class="mini-btn" id="btn-holes">実行</button><span class="val" id="val-holes" style="color:var(--ink-3)">—</span></div>
+          </div>
+        </div>
+
+        <div class="op" id="op-simplify">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 20L10 6l4 8 3-5 3 11z"/></svg></div>
+          <div class="f">
+            <div class="nm">軽量化（面数を削減）</div>
+            <div class="ds">見た目をほぼ保ったまま面数を減らし、スライサーでの扱いを軽くします。</div>
+            <div class="row">
+              <button class="mini-btn" id="btn-simplify">実行</button>
+              <input type="range" id="rng-simplify" min="10" max="90" value="50" step="5">
+              <span class="val" id="val-simplify">50%削減</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>サイズ・向き</h3>
+        <div class="op">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 13h7v7h-7z"/><path d="M11 11l2 2"/></svg></div>
+          <div class="f">
+            <div class="nm">実寸スケール</div>
+            <div class="ds">最も長い辺を基準に、実際の出力サイズ（mm）を指定します。</div>
+            <div class="row">
+              最大辺 <input type="number" id="in-scale-mm" value="100" min="1" step="1"> mm
+              <button class="mini-btn gh" id="btn-scale">適用</button>
+            </div>
+          </div>
+        </div>
+        <div class="op">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 18h16M4 18l4-9 4 5 3-8 3 12"/></svg></div>
+          <div class="f">
+            <div class="nm">底面に接地</div>
+            <div class="ds">最下点をプレート面（Z=0）に合わせ、中心を原点に揃えます。</div>
+            <div class="row"><button class="mini-btn gh" id="btn-ground">適用</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>書き出し</h3>
+        <div class="export-grid">
+          <button class="export-btn" id="btn-export-stl"><span class="fmt">STL</span><span class="note">スライサー標準</span></button>
+          <button class="export-btn" id="btn-export-obj"><span class="fmt">OBJ</span><span class="note">編集・共有向け</span></button>
+        </div>
+        <p class="export-hint">書き出しは常に「現在ビューアに表示されている状態」を出力します。修復・調整を終えてから書き出してください。</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <div id="canvas-wrap"></div>
+
+    <div class="drop" id="drop">
+      <div class="drop-inner">
+        <svg class="drop-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v13m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        <h2>スキャンデータをドロップ</h2>
+        <p>OBJ / STL / PLY 形式に対応</p>
+        <button class="btn y" id="btn-open-2">ファイルを選択</button>
+        <input type="file" id="file-input" accept=".obj,.stl,.ply">
+      </div>
+    </div>
+
+    <div class="hud" id="hud" style="display:none">
+      <div class="hud-chip"><i class="d ok" id="hud-dot"></i><span id="hud-text">読み込み完了</span></div>
+    </div>
+
+    <div class="view-tools" id="view-tools" style="display:none">
+      <button class="vt-btn" id="vt-wire" aria-pressed="false" title="ワイヤーフレーム表示">
+        <svg viewBox="0 0 24 24"><path d="M4 6l8-3 8 3-8 3-8-3zM4 6v12l8 3M20 6v12l-8 3M4 12l8 3 8-3M12 9v12"/></svg>
+      </button>
+      <button class="vt-btn" id="vt-fit" title="全体を表示">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+
+    <div class="progress-wrap" id="progress">
+      <div class="pt"><span id="progress-label">処理中…</span><span id="progress-pct">0%</span></div>
+      <div class="pbar"><i id="progress-bar" style="width:0%"></i></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
