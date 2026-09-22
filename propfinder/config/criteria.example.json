@@ -1,0 +1,83 @@
+{
+  "_comment": "投資基準と前提条件。propfinder --config config/criteria.json で読み込む。税率・軽減措置は改正されるため、判断前に必ず税理士・金融機関に確認すること。",
+
+  "assumptions": {
+    "ltv": 0.9,
+    "loanRate": 0.022,
+    "loanYears": 25,
+    "loanYearsLimitedByLife": true,
+
+    "holdYears": 10,
+    "vacancyRate": 0.1,
+    "rentDeclineRate": 0.01,
+    "incomeTaxRate": 0.33,
+
+    "exitCapRate": null,
+    "annualPriceDecline": 0.01,
+    "longTermBoundaryYears": 6,
+
+    "marketCapRate": 0.08
+  },
+
+  "rates": {
+    "_comment": "空室率・管理費などは実績値が分かれば物件ごとに上書きしたほうが精度が上がる",
+    "vacancyRate": 0.1,
+    "managementFeeRate": 0.05,
+    "repairReserveRate": 0.05,
+    "otherOpexRate": 0.02,
+    "propertyTaxRate": 0.014,
+    "cityPlanningTaxRate": 0.003,
+    "brokerageIncluded": true,
+
+    "replacementCost": {
+      "_comment": "構造別の再調達価格（円/㎡）。取引する金融機関の評価水準に合わせる",
+      "RC": 200000,
+      "SRC": 200000,
+      "HEAVY_STEEL": 180000,
+      "LIGHT_STEEL": 150000,
+      "WOOD": 150000
+    }
+  },
+
+  "criteria": {
+    "rental": {
+      "knockout": {
+        "minGrossYield": 0.09,
+        "minDscr": 1.25,
+        "maxDebtRatio": 0.55,
+        "minMonthlyCashflow": 30000,
+        "minCostRatio": 0.7,
+        "maxAgeOverLife": true
+      },
+      "weights": {
+        "netYield": 0.3,
+        "cashflow": 0.25,
+        "costRatio": 0.25,
+        "exitIrr": 0.2
+      },
+      "targets": {
+        "netYield": 0.07,
+        "monthlyCashflow": 150000,
+        "costRatio": 1.1,
+        "irr": 0.15
+      }
+    },
+    "resale": {
+      "knockout": {
+        "minSpreadRatio": 0.15,
+        "minCostRatio": 0.9,
+        "maxHoldYears": 2
+      },
+      "weights": {
+        "spreadRatio": 0.5,
+        "costRatio": 0.3,
+        "liquidity": 0.2
+      },
+      "targets": {
+        "spreadRatio": 0.3,
+        "costRatio": 1.3,
+        "liquidity": 1.0
+      }
+    }
+  }
+}

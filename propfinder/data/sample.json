@@ -1,0 +1,38 @@
+[
+  {
+    "name": "船橋RC一棟",
+    "address": "千葉県船橋市本町",
+    "price": 59800000, "annualRent": 6480000,
+    "structure": "RC", "ageYears": 28,
+    "landArea": 210.55, "buildingArea": 380.2, "rosenka": 135000,
+    "url": "https://example.com/b/12345"
+  },
+  {
+    "name": "八王子木造アパート",
+    "address": "東京都八王子市",
+    "price": 24800000, "annualRent": 3120000,
+    "structure": "WOOD", "ageYears": 15,
+    "landArea": 165.0, "buildingArea": 140.0, "rosenka": 110000
+  },
+  {
+    "name": "築古木造（融資厳しめ）",
+    "address": "埼玉県川口市",
+    "price": 18000000, "annualRent": 2400000,
+    "structure": "WOOD", "ageYears": 32,
+    "landArea": 120.0, "buildingArea": 95.0, "rosenka": 150000
+  },
+  {
+    "name": "都心区分（低利回り）",
+    "address": "東京都港区",
+    "price": 48000000, "annualRent": 2160000,
+    "structure": "RC", "ageYears": 12,
+    "landArea": 15.0, "buildingArea": 45.0, "rosenka": 900000
+  },
+  {
+    "name": "地方重量鉄骨",
+    "address": "栃木県宇都宮市",
+    "price": 88000000, "annualRent": 11400000,
+    "structure": "HEAVY_STEEL", "ageYears": 18,
+    "landArea": 640.0, "buildingArea": 720.0, "rosenka": 65000
+  }
+]

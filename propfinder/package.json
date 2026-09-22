@@ -1,0 +1,15 @@
+{
+  "name": "propfinder",
+  "version": "0.1.0",
+  "description": "不動産投資の自動スクリーニング・収益計算エンジン",
+  "type": "module",
+  "bin": {
+    "propfinder": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
