@@ -1,0 +1,170 @@
+[
+  {
+    "name": "1. アルゴリズムを変える",
+    "desc": "重複検出 6,000件（全ペア比較 → 集合）",
+    "before": {
+      "command": "/usr/local/bin/python3 algo.py before",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.47470227099998397,
+      "cpu_s": 0.46516299999999994,
+      "peak_rss_mb": 11.67578125,
+      "energy_j": 3.7213039999999995,
+      "energy_wh": 0.0010336955555555554,
+      "co2_g": 0.0004351858288888888,
+      "grid_kg_per_kwh": 0.421
+    },
+    "after": {
+      "command": "/usr/local/bin/python3 algo.py after",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.017817564000012,
+      "cpu_s": 0.01751700000000011,
+      "peak_rss_mb": 11.85546875,
+      "energy_j": 0.14013600000000087,
+      "energy_wh": 3.892666666666691e-05,
+      "co2_g": 1.638812666666677e-05,
+      "grid_kg_per_kwh": 0.421
+    }
+  },
+  {
+    "name": "2. やらない（キャッシュ）",
+    "desc": "偏りのある3,000リクエスト（毎回計算 → 結果を記憶）",
+    "before": {
+      "command": "/usr/local/bin/python3 cache.py before",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.25896274800001606,
+      "cpu_s": 0.2472819999999999,
+      "peak_rss_mb": 11.85546875,
+      "energy_j": 1.9782559999999991,
+      "energy_wh": 0.0005495155555555553,
+      "co2_g": 0.0002313460488888888,
+      "grid_kg_per_kwh": 0.421
+    },
+    "after": {
+      "command": "/usr/local/bin/python3 cache.py after",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.053607843999998295,
+      "cpu_s": 0.05336600000000026,
+      "peak_rss_mb": 11.85546875,
+      "energy_j": 0.4269280000000021,
+      "energy_wh": 0.00011859111111111169,
+      "co2_g": 4.9926857777778016e-05,
+      "grid_kg_per_kwh": 0.421
+    }
+  },
+  {
+    "name": "3a. データを小さくする",
+    "desc": "5,000万個の値（64bit → 8bit）",
+    "before": {
+      "command": "./dtype f64",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.7195383889999789,
+      "cpu_s": 0.7110560000000001,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 5.688448000000001,
+      "energy_wh": 0.0015801244444444448,
+      "co2_g": 0.0006652323911111112,
+      "grid_kg_per_kwh": 0.421
+    },
+    "after": {
+      "command": "./dtype i8",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.13940179900001226,
+      "cpu_s": 0.1357409999999999,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 1.0859279999999991,
+      "energy_wh": 0.0003016466666666664,
+      "co2_g": 0.00012699324666666658,
+      "grid_kg_per_kwh": 0.421
+    }
+  },
+  {
+    "name": "3b. 並び順に読む",
+    "desc": "8,192×8,192配列（列の順 → 行の順）",
+    "before": {
+      "command": "./locality col",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.7992994060000171,
+      "cpu_s": 0.7978469999999986,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 6.382775999999989,
+      "energy_wh": 0.0017729933333333304,
+      "co2_g": 0.0007464301933333321,
+      "grid_kg_per_kwh": 0.421
+    },
+    "after": {
+      "command": "./locality row",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.1826068439999915,
+      "cpu_s": 0.17704900000000023,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 1.4163920000000019,
+      "energy_wh": 0.00039344222222222275,
+      "co2_g": 0.00016563917555555577,
+      "grid_kg_per_kwh": 0.421
+    }
+  },
+  {
+    "name": "4. 身の丈に合った道具",
+    "desc": "120件の処理（1件ごとに実行環境を起動 → 1回起動）",
+    "before": {
+      "command": "/usr/local/bin/python3 spawn.py before",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 1.3409380140000167,
+      "cpu_s": 1.3198209999999992,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 10.558567999999994,
+      "energy_wh": 0.002932935555555554,
+      "co2_g": 0.001234765868888888,
+      "grid_kg_per_kwh": 0.421
+    },
+    "after": {
+      "command": "/usr/local/bin/python3 spawn.py after",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.04361915900000213,
+      "cpu_s": 0.04318499999999936,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 0.3454799999999949,
+      "energy_wh": 9.596666666666525e-05,
+      "co2_g": 4.0401966666666074e-05,
+      "grid_kg_per_kwh": 0.421
+    }
+  },
+  {
+    "name": "5. まとめて処理する",
+    "desc": "3,000行のDB書き込み（1件ずつ確定 → 一括）",
+    "before": {
+      "command": "/usr/local/bin/python3 batch.py before",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 1.7084860539999909,
+      "cpu_s": 0.5071150000000006,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 4.056920000000005,
+      "energy_wh": 0.0011269222222222237,
+      "co2_g": 0.00047443425555555613,
+      "grid_kg_per_kwh": 0.421
+    },
+    "after": {
+      "command": "/usr/local/bin/python3 batch.py after",
+      "repeat": 5,
+      "method": "推定（CPU時間 × 8W/コア）",
+      "wall_s": 0.03132742600001848,
+      "cpu_s": 0.029367999999998062,
+      "peak_rss_mb": 385.53515625,
+      "energy_j": 0.2349439999999845,
+      "energy_wh": 6.526222222221792e-05,
+      "co2_g": 2.7475395555553742e-05,
+      "grid_kg_per_kwh": 0.421
+    }
+  }
+]
