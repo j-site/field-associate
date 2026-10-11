@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>無料で不動産査定｜最大3社の査定を比較</title>
+<meta name="description" content="マンション・一戸建て・土地の売却査定を無料で申し込めます。提携する不動産会社（最大3社）から査定結果をお届けします。">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="./" data-site>不動産かんたん査定</a>
+    <a class="header-link" href="partner.html">不動産会社の方へ</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">無料・約3分で入力完了</div>
+    <h1>あなたの不動産、<br><em>いくらで売れる？</em></h1>
+    <p class="lead">マンション・一戸建て・土地の情報を入力するだけ。<br>提携する不動産会社から、<b><span class="max-buyers">最大3</span>社</b>の査定結果が届きます。</p>
+    <a class="btn accent lg" href="#form">無料で査定を申し込む</a>
+    <ul class="badges">
+      <li>申込み・査定は無料</li>
+      <li>情報を渡すのは<span class="max-buyers">最大3</span>社まで</li>
+      <li>売却を決めていなくてもOK</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="sec-title">ご利用の流れ</h2>
+    <ol class="steps">
+      <li><b>物件と連絡先を入力</b><p>所在地・広さ・築年数など、分かる範囲で大丈夫です。</p></li>
+      <li><b>不動産会社に情報をお渡し</b><p>同意いただいた内容を、提携する不動産会社（最大<span class="max-buyers">3</span>社）にお渡しします。</p></li>
+      <li><b>査定結果が届く</b><p>各社から直接、査定額やご提案の連絡があります。比べて検討できます。</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="form" style="background:var(--bg-2)">
+  <div class="wrap narrow">
+    <h2 class="sec-title">無料査定のお申込み</h2>
+    <div class="card">
+      <div class="progress" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+
+      <form id="lead-form" novalidate>
+        <!-- ボット対策：人間には見えない入力欄 -->
+        <div class="hp" aria-hidden="true"><label>Webサイト<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+        <!-- STEP 1 物件 -->
+        <div class="step" data-step="1">
+          <div class="step-title">1. 物件について</div>
+          <div class="step-sub">分かる範囲で入力してください。</div>
+
+          <div class="field" data-name="property_type">
+            <div class="label">物件の種類<span class="req">必須</span></div>
+            <div class="choices" id="type-choices"></div>
+            <div class="err">物件の種類を選んでください</div>
+          </div>
+
+          <div class="row">
+            <div class="field" data-name="prefecture">
+              <label for="prefecture">都道府県<span class="req">必須</span></label>
+              <select id="prefecture" name="prefecture"><option value="">選択してください</option></select>
+              <div class="err">都道府県を選んでください</div>
+            </div>
+            <div class="field" data-name="city">
+              <label for="city">市区町村<span class="req">必須</span></label>
+              <input type="text" id="city" name="city" placeholder="例：東大阪市" autocomplete="address-level2">
+              <div class="err">市区町村を入力してください</div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="town">町名・丁目<span class="opt">任意</span></label>
+            <input type="text" id="town" name="town" placeholder="例：長田東2丁目" autocomplete="address-level3">
+          </div>
+          <div class="field">
+            <label for="address_detail">番地・建物名・部屋番号<span class="opt">任意</span></label>
+            <input type="text" id="address_detail" name="address_detail" placeholder="例：3-5 サンプルハイツ101">
+            <div class="hint">番地以降は、情報を受け取った不動産会社だけに開示されます。</div>
+          </div>
+
+          <div class="row">
+            <div class="field" data-name="land_area" data-types="house,land,apartment,other">
+              <label for="land_area">土地面積（㎡）<span class="opt">任意</span></label>
+              <input type="number" id="land_area" name="land_area" inputmode="decimal" min="1" step="0.01" placeholder="例：120">
+              <div class="err">正しい数値を入力してください</div>
+            </div>
+            <div class="field" data-name="building_area" data-types="mansion,house,apartment,other">
+              <label for="building_area"><span class="area-label">建物面積</span>（㎡）<span class="opt">任意</span></label>
+              <input type="number" id="building_area" name="building_area" inputmode="decimal" min="1" step="0.01" placeholder="例：85">
+              <div class="err">正しい数値を入力してください</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field" data-name="built_year" data-types="mansion,house,apartment,other">
+              <label for="built_year">築年（西暦）<span class="opt">任意</span></label>
+              <input type="number" id="built_year" name="built_year" inputmode="numeric" min="1900" max="2100" placeholder="例：1998">
+              <div class="err">1900〜今年の範囲で入力してください</div>
+            </div>
+            <div class="field" data-types="mansion,house,apartment,other">
+              <label for="layout">間取り<span class="opt">任意</span></label>
+              <input type="text" id="layout" name="layout" placeholder="例：3LDK">
+            </div>
+          </div>
+
+          <div class="field" data-name="current_status">
+            <div class="label">現在の状況<span class="opt">任意</span></div>
+            <div class="choices" id="status-choices"></div>
+          </div>
+          <div class="field" data-name="sale_timing">
+            <div class="label">売却の希望時期<span class="req">必須</span></div>
+            <div class="choices" id="timing-choices"></div>
+            <div class="err">希望時期を選んでください</div>
+          </div>
+
+          <div class="nav-btns"><button type="button" class="btn" data-next>次へ：連絡先</button></div>
+        </div>
+
+        <!-- STEP 2 連絡先 -->
+        <div class="step" data-step="2" hidden>
+          <div class="step-title">2. ご連絡先</div>
+          <div class="step-sub">査定結果をお届けするために使います。</div>
+
+          <div class="field" data-name="name">
+            <label for="name">お名前<span class="req">必須</span></label>
+            <input type="text" id="name" name="name" placeholder="例：山田 太郎" autocomplete="name">
+            <div class="err">お名前を入力してください</div>
+          </div>
+          <div class="field" data-name="phone">
+            <label for="phone">電話番号</label>
+            <input type="tel" id="phone" name="phone" placeholder="例：090-1234-5678" autocomplete="tel">
+            <div class="err">電話番号の形式を確認してください</div>
+          </div>
+          <div class="field" data-name="email">
+            <label for="email">メールアドレス</label>
+            <input type="email" id="email" name="email" placeholder="例：taro@example.com" autocomplete="email">
+            <div class="err">メールアドレスの形式を確認してください</div>
+          </div>
+          <div class="notice warn" id="contact-required" hidden>電話番号かメールアドレスのどちらかを入力してください。</div>
+
+          <div class="field">
+            <div class="label">ご希望の連絡方法</div>
+            <div class="choices" id="method-choices"></div>
+          </div>
+          <div class="field">
+            <label for="contact_time">連絡のつきやすい時間帯<span class="opt">任意</span></label>
+            <input type="text" id="contact_time" name="contact_time" placeholder="例：平日18時以降">
+          </div>
+          <div class="field">
+            <label for="note">ご要望・備考<span class="opt">任意</span></label>
+            <textarea id="note" name="note" maxlength="1000" placeholder="例：相続した実家を売りたい／住み替えを検討中 など"></textarea>
+          </div>
+
+          <div class="nav-btns">
+            <button type="button" class="btn ghost" data-prev>戻る</button>
+            <button type="button" class="btn" data-next>次へ：確認</button>
+          </div>
+        </div>
+
+        <!-- STEP 3 確認と同意 -->
+        <div class="step" data-step="3" hidden>
+          <div class="step-title">3. 内容の確認</div>
+          <div class="step-sub">以下の内容でお申込みします。</div>
+          <div class="summary" id="summary"></div>
+
+          <div class="consent">
+            <label>
+              <input type="checkbox" id="consent" name="consent">
+              <span>入力した内容（お名前・連絡先・物件情報）を、<a href="partners.html" target="_blank" rel="noopener">提携する不動産会社</a>のうち最大<span class="max-buyers">3</span>社に提供することに同意します。</span>
+            </label>
+            <p>提供した会社から、査定結果やご提案の連絡が届きます。お預かりした情報は<a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>に従って取り扱います。<a href="terms.html" target="_blank" rel="noopener">利用規約</a>もご確認ください。</p>
+          </div>
+          <div class="err" id="consent-err" style="margin-bottom:8px">同意いただかないとお申込みできません</div>
+
+          <div class="notice err" id="submit-error" hidden></div>
+          <div class="nav-btns">
+            <button type="button" class="btn ghost" data-prev>戻る</button>
+            <button type="submit" class="btn accent" id="submit-btn">同意して申し込む</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- 完了 -->
+      <div class="done" id="done" hidden>
+        <div class="mark">✓</div>
+        <div class="step-title">お申込みを受け付けました</div>
+        <p class="step-sub" style="margin-top:8px">提携する不動産会社から、順次ご連絡します。<br>連絡が届くまでお待ちください。</p>
+        <div class="notice ok" style="text-align:left">
+          お申込みの取り下げや、提供先の確認をご希望の場合は、<a href="privacy.html#contact">お問い合わせ窓口</a>までご連絡ください。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap narrow">
+    <h2 class="sec-title">よくあるご質問</h2>
+    <div class="faq">
+      <details><summary>本当に無料ですか？</summary><p>はい。お申込み・査定ともに無料です。当サイトは、不動産会社からいただく利用料で運営しています。</p></details>
+      <details><summary>何社から連絡が来ますか？</summary><p>最大<span class="max-buyers">3</span>社です。たくさんの会社から一斉に連絡が来ることはありません。</p></details>
+      <details><summary>売るか決めていなくても申し込めますか？</summary><p>はい。「まず価格を知りたい」という段階でもお申し込みいただけます。査定を受けたからといって、売却する義務はありません。</p></details>
+      <details><summary>入力した情報は誰に渡りますか？</summary><p>同意いただいた内容を、当サイトと提携し審査を通過した不動産会社（宅地建物取引業の免許を持つ会社）に、最大<span class="max-buyers">3</span>社までお渡しします。番地や連絡先は、情報を受け取った会社以外には開示しません。</p></details>
+      <details><summary>申込みを取り消したいときは？</summary><p><a href="privacy.html#contact">お問い合わせ窓口</a>までご連絡ください。連絡先を削除し、以降の提供を停止します。</p></details>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="partners.html">提携不動産会社一覧</a>
+      <a href="partner.html">不動産会社の方へ</a>
+    </nav>
+    <div>運営：<span data-op="name"></span></div>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="js/common.js"></script>
+<script src="js/form.js"></script>
+</body>
+</html>

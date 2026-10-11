@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運営管理</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="./"><span data-site>不動産かんたん査定</span> 運営管理</a>
+    <span><span class="header-link" id="who"></span> <button class="btn ghost small" id="logout" hidden>ログアウト</button></span>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:28px">
+  <div id="view-login" hidden>
+    <div class="wrap narrow" style="padding:0">
+      <div class="card">
+        <div class="step-title">運営者ログイン</div>
+        <form id="login-form" novalidate style="margin-top:14px">
+          <div class="field"><label for="email">メールアドレス</label><input type="email" id="email" autocomplete="email"></div>
+          <div class="field"><label for="password">パスワード</label><input type="password" id="password" autocomplete="current-password"></div>
+          <div class="notice err" id="login-error" hidden></div>
+          <button class="btn block">ログイン</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-denied" hidden>
+    <div class="notice err">このアカウントには運営者の権限がありません。</div>
+  </div>
+
+  <div id="view-admin" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="partners">不動産会社</button>
+      <button role="tab" aria-selected="false" data-tab="leads">査定依頼</button>
+      <button role="tab" aria-selected="false" data-tab="settings">設定</button>
+    </div>
+
+    <div id="tab-partners">
+      <div class="table-wrap"><table>
+        <thead><tr><th>状態</th><th>会社名 / 免許番号</th><th>担当・連絡先</th><th>エリア</th><th>残高</th><th>購入数</th><th>操作</th></tr></thead>
+        <tbody id="partners-body"></tbody>
+      </table></div>
+    </div>
+
+    <div id="tab-leads" hidden>
+      <p class="step-sub">「提供先」は個人情報保護法上の第三者提供の記録を兼ねています（提供日時・提供先）。</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>受付</th><th>状態</th><th>物件</th><th>依頼者</th><th>提供先</th><th>操作</th></tr></thead>
+        <tbody id="leads-body"></tbody>
+      </table></div>
+    </div>
+
+    <div id="tab-settings" hidden>
+      <div class="card" style="max-width:520px">
+        <form id="settings-form" novalidate>
+          <div class="field"><label for="s-price">1件あたりの消費クレジット</label><input type="number" id="s-price" min="1"></div>
+          <div class="field"><label for="s-max">1件を提供する最大社数</label><input type="number" id="s-max" min="1" max="10">
+            <div class="hint">変更は、変更後に届いた依頼から適用されます。</div></div>
+          <div class="field"><label for="s-ttl">受付期間（日）</label><input type="number" id="s-ttl" min="1"></div>
+          <div class="field"><label for="s-consent">同意文の版（日付など）</label><input type="text" id="s-consent">
+            <div class="hint">同意文やプライバシーポリシーを改定したら更新します。依頼ごとに、どの版に同意したかが記録されます。</div></div>
+          <button class="btn">保存</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="js/common.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

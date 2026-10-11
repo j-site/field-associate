@@ -1,0 +1,12 @@
+{
+  "name": "satei-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test sql.test.js"
+  },
+  "devDependencies": {
+    "pg": "^8.13.0",
+    "playwright": "^1.63.0"
+  }
+}

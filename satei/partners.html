@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提携不動産会社一覧</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header"><div class="wrap"><a class="logo" href="./" data-site>不動産かんたん査定</a></div></header>
+<main class="wrap narrow legal">
+  <h1>提携不動産会社一覧</h1>
+  <p>お申込みいただいた情報は、以下の会社のうち、物件の所在地に対応する会社に最大<span id="max">3</span>社まで提供します。いずれも宅地建物取引業の免許を確認したうえで提携しています。</p>
+  <div id="list" style="margin-top:18px"><div class="empty">読み込んでいます…</div></div>
+</main>
+<footer class="site-footer"><div class="wrap"><nav><a href="./">トップ</a><a href="privacy.html">プライバシーポリシー</a><a href="terms.html">利用規約</a></nav><div>運営：<span data-op="name"></span></div></div></footer>
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="js/common.js"></script>
+<script>
+(async function () {
+  var S = window.Satei, box = document.getElementById("list");
+  try {
+    var [list, s] = await Promise.all([S.rpc("get_public_partners"), S.rpc("get_public_settings")]);
+    document.getElementById("max").textContent = s.max_buyers;
+    box.innerHTML = list.length ? '<div class="table-wrap"><table style="min-width:0"><thead><tr><th>会社名</th><th>免許番号</th><th>対応エリア</th></tr></thead><tbody>' +
+      list.map(function (p) {
+        return "<tr><td>" + S.esc(p.company_name) + "</td><td>" + S.esc(p.license_no) + "</td><td>" +
+          S.esc(p.areas && p.areas.length ? p.areas.join("・") : "全国") + "</td></tr>";
+      }).join("") + "</tbody></table></div>"
+      : '<div class="empty">現在、提携している不動産会社はありません。</div>';
+  } catch (err) {
+    box.innerHTML = '<div class="notice err">' + S.esc(err.message) + "</div>";
+  }
+})();
+</script>
+</body>
+</html>

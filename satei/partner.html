@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不動産会社さま専用ページ</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="./" data-site>不動産かんたん査定</a>
+    <span>
+      <span class="header-link" id="who"></span>
+      <button class="btn ghost small" id="logout" hidden>ログアウト</button>
+    </span>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:28px">
+
+  <!-- 未ログイン -->
+  <div id="view-auth" hidden>
+    <div class="wrap narrow" style="padding:0">
+      <h1 class="step-title" style="font-size:22px">不動産会社さま専用ページ</h1>
+      <p class="step-sub">売却査定のご依頼を、エリアを指定して受け取れます。ご利用には登録と審査（宅地建物取引業の免許の確認）が必要です。</p>
+      <div class="card">
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-auth-tab="login">ログイン</button>
+          <button role="tab" aria-selected="false" data-auth-tab="signup">新規登録</button>
+        </div>
+        <form id="auth-form" novalidate>
+          <div class="field"><label for="auth-email">メールアドレス</label><input type="email" id="auth-email" autocomplete="email" required></div>
+          <div class="field"><label for="auth-password">パスワード</label><input type="password" id="auth-password" autocomplete="current-password" minlength="8" required>
+            <div class="hint" id="pw-hint" hidden>8文字以上で設定してください</div></div>
+          <div class="notice err" id="auth-error" hidden></div>
+          <button class="btn block" id="auth-submit">ログイン</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 会社情報の登録 -->
+  <div id="view-register" hidden>
+    <div class="wrap narrow" style="padding:0">
+      <h1 class="step-title" style="font-size:22px">会社情報の登録</h1>
+      <p class="step-sub">登録後、運営による審査を経てご利用いただけます。</p>
+      <div class="card">
+        <form id="register-form" novalidate>
+          <div class="field"><label for="r-company">会社名<span class="req">必須</span></label><input type="text" id="r-company" required></div>
+          <div class="field"><label for="r-license">宅地建物取引業 免許番号<span class="req">必須</span></label><input type="text" id="r-license" placeholder="例：大阪府知事(1)第12345号" required></div>
+          <div class="row">
+            <div class="field"><label for="r-rep">ご担当者名<span class="req">必須</span></label><input type="text" id="r-rep" required></div>
+            <div class="field"><label for="r-phone">電話番号<span class="req">必須</span></label><input type="tel" id="r-phone" placeholder="06-1234-5678" required></div>
+          </div>
+          <div class="field">
+            <div class="label">対応エリア（都道府県）</div>
+            <div class="hint" style="margin:0 0 6px">選んだ都道府県の依頼だけが表示されます。何も選ばない場合は全国が対象です。</div>
+            <div class="choices" id="r-areas" style="grid-template-columns:repeat(auto-fill,minmax(96px,1fr))"></div>
+          </div>
+          <div class="notice warn">
+            免許番号を変更すると、改めて審査が必要になります。
+          </div>
+          <div class="notice err" id="register-error" hidden></div>
+          <button class="btn block" id="register-submit">登録して審査を申し込む</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 審査待ち -->
+  <div id="view-pending" hidden>
+    <div class="wrap narrow" style="padding:0">
+      <div class="card done">
+        <div class="mark" style="background:var(--warn-soft);color:var(--warn)">…</div>
+        <div class="step-title">審査中です</div>
+        <p class="step-sub" style="margin-top:8px">免許番号を確認しています。審査が完了すると、査定依頼の一覧を閲覧できるようになります。</p>
+        <button class="btn ghost small" id="edit-profile">会社情報を修正する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ダッシュボード -->
+  <div id="view-dashboard" hidden>
+    <div class="stats">
+      <div class="stat"><div class="k">クレジット残高</div><div class="v" id="credits">—</div></div>
+      <div class="stat"><div class="k">1件あたり</div><div class="v" id="price">—</div></div>
+      <div class="stat"><div class="k">対応エリア</div><div class="v" style="font-size:14px;font-weight:700;padding-top:6px" id="areas">—</div></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="open">受付中の査定依頼</button>
+      <button role="tab" aria-selected="false" data-tab="mine">購入済み</button>
+    </div>
+    <div id="tab-open">
+      <p class="step-sub">購入するまで、連絡先・町名・番地・正確な面積は表示されません。1件の依頼は最大<span id="max-buyers">3</span>社まで購入できます。</p>
+      <div id="open-list"></div>
+    </div>
+    <div id="tab-mine" hidden>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn ghost small" id="csv">CSVで書き出す</button>
+      </div>
+      <div id="mine-list"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav><a href="terms.html">利用規約</a><a href="privacy.html">プライバシーポリシー</a></nav>
+    <div>運営：<span data-op="name"></span>　お問い合わせ：<span data-op="email"></span></div>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="js/common.js"></script>
+<script src="js/partner.js"></script>
+</body>
+</html>
