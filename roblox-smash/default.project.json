@@ -1,0 +1,14 @@
+{
+  "name": "sky-ranto",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "SmashServer": { "$path": "src/server/SmashServer.server.luau" }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "SmashClient": { "$path": "src/client/SmashClient.client.luau" }
+      }
+    }
+  }
+}
