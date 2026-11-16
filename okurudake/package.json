@@ -1,0 +1,17 @@
+{
+  "name": "okurudake",
+  "version": "0.1.0",
+  "description": "LINEに書類を送るだけで、AIが要点・お金の影響・やることを返す。業種パックで誰でも拡張できる。",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  }
+}

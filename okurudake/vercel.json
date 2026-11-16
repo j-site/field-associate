@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "api/line.js": { "maxDuration": 300, "includeFiles": "packs/**" }
+  }
+}
