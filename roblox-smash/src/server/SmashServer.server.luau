@@ -26,7 +26,7 @@ local CONFIG = {
 	Blast = { Side = 110, Top = 140, Bottom = -45 },   -- ここを越えるとやられる
 	Attacks = {
 		-- Damage: たまる％ / Base・Scale: 吹っ飛ぶ強さ = Base + ％×Scale / Angle: 飛ぶ角度
-		Light = { Damage = 6, Range = 6.5, Base = 30, Scale = 0.6, Angle = 30, Cooldown = 0.35 },
+		Light = { Damage = 6, Range = 7.5, Base = 30, Scale = 0.6, Angle = 30, Cooldown = 0.35 },
 		Smash = { Damage = 15, Range = 8, Base = 55, Scale = 1.2, Angle = 42, Cooldown = 1.2 },
 	},
 }

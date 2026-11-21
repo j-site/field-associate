@@ -44,6 +44,8 @@ end)
 
 ---------------------------------------------------------------- 吹っ飛び
 
+local stunToken = 0
+
 knockRemote.OnClientEvent:Connect(function(velocity)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -51,6 +53,29 @@ knockRemote.OnClientEvent:Connect(function(velocity)
 	if not root or not humanoid or typeof(velocity) ~= "Vector3" then return end
 	humanoid:ChangeState(Enum.HumanoidStateType.Freefall)   -- 地面にいると踏ん張ってしまうので、浮かせてから飛ばす
 	root.AssemblyLinearVelocity = velocity
+
+	-- 吹っ飛んでいる間は操作できなくする。反対方向のキーで勢いを打ち消せてしまうのを防ぐ
+	stunToken += 1
+	local token = stunToken
+	humanoid.PlatformStand = true
+	task.delay(math.clamp(velocity.Magnitude / 400, 0.12, 0.5), function()
+		if token == stunToken and humanoid.Parent then humanoid.PlatformStand = false end
+	end)
+end)
+
+---------------------------------------------------------------- 奥行きを固定（W/Sで奥に逃げられないようにする）
+
+RunService.Heartbeat:Connect(function()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	local z = root.Position.Z
+	-- 観戦台（奥の別の場所）にいるときは固定しない
+	if math.abs(z) > 0.05 and math.abs(z) <= 8 then
+		local v = root.AssemblyLinearVelocity
+		root.CFrame = root.CFrame - Vector3.new(0, 0, z)
+		root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, 0)
+	end
 end)
 
 ---------------------------------------------------------------- 2段ジャンプ
