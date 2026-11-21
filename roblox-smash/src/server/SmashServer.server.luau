@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 
 -- ここの数字を変えると、ゲームの手ごたえを調整できる
 local CONFIG = {
@@ -26,9 +27,16 @@ local CONFIG = {
 	Blast = { Side = 110, Top = 140, Bottom = -45 },   -- ここを越えるとやられる
 	Attacks = {
 		-- Damage: たまる％ / Base・Scale: 吹っ飛ぶ強さ = Base + ％×Scale / Angle: 飛ぶ角度
-		Light = { Damage = 6, Range = 7.5, Base = 30, Scale = 0.6, Angle = 30, Cooldown = 0.35 },
-		Smash = { Damage = 15, Range = 8, Base = 55, Scale = 1.2, Angle = 42, Cooldown = 1.2 },
+		Light = { Damage = 6, Range = 7.5, Base = 30, Scale = 0.6, Angle = 30, Cooldown = 0.35, Windup = 0.05 },
+		Smash = { Damage = 15, Range = 8, Base = 55, Scale = 1.2, Angle = 42, Cooldown = 1.2, Windup = 0.16 },   -- Windup: ボタンを押してから当たるまで（秒）
 	},
+}
+
+-- 攻撃のモーション：腕の振り（arm）と体の傾き（lean）の角度。t はその動きにかける秒数
+local POSES = {
+	Light = { { t = 0.05, arm = -30, lean = 5 }, { t = 0.07, arm = 100, lean = -12 }, { t = 0.14, arm = 0, lean = 0 } },
+	Smash = { { t = 0.16, arm = -120, lean = 10 }, { t = 0.07, arm = 110, lean = -25 }, { t = 0.25, arm = 0, lean = 0 } },
+	Hit = { { t = 0.05, arm = -25, lean = 14 }, { t = 0.2, arm = 0, lean = 0 } },   -- やられたときののけぞり
 }
 
 local SPAWN_X = { -30, -21, -12, -4, 4, 12, 21, 30 }   -- 8人まで、重ならずに出現できる
@@ -128,6 +136,44 @@ local function burst(position, color, size)
 	p.Transparency = 0.3
 	p.Parent = workspace
 	Debris:AddItem(p, 0.15)
+end
+
+---------------------------------------------------------------- 攻撃のモーション
+-- 関節（Motor6D）を動かして、腕を振る・体を傾ける。サーバーで動かすので、ほかのプレイヤーにも見える。
+-- 標準のアバター（R15）用。体型が違うときは何もしない。
+
+local poseToken = setmetatable({}, { __mode = "k" })
+
+local function pose(character, steps)
+	if not character then return end
+	local shoulder = character:FindFirstChild("RightShoulder", true)
+	local waist = character:FindFirstChild("Waist", true)
+	if not (shoulder and shoulder:IsA("Motor6D") and waist and waist:IsA("Motor6D")) then return end
+
+	-- 元の位置は、最初の1回だけ覚える
+	for _, joint in { shoulder, waist } do
+		if joint:GetAttribute("BaseC0") == nil then joint:SetAttribute("BaseC0", joint.C0) end
+	end
+	local baseShoulder, baseWaist = shoulder:GetAttribute("BaseC0"), waist:GetAttribute("BaseC0")
+
+	local token = (poseToken[character] or 0) + 1
+	poseToken[character] = token   -- 新しい動きが始まったら、前の動きは打ち切る
+	for _, step in steps do
+		if poseToken[character] ~= token or not shoulder.Parent or not waist.Parent then return end
+		local info = TweenInfo.new(step.t, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(shoulder, info, { C0 = baseShoulder * CFrame.Angles(math.rad(step.arm), 0, 0) }):Play()
+		TweenService:Create(waist, info, { C0 = baseWaist * CFrame.Angles(math.rad(step.lean), 0, 0) }):Play()
+		task.wait(step.t)
+	end
+end
+
+local function flash(character)
+	local h = Instance.new("Highlight")
+	h.FillColor = Color3.fromRGB(255, 60, 40)
+	h.FillTransparency = 0.35
+	h.OutlineTransparency = 1
+	h.Parent = character
+	Debris:AddItem(h, 0.15)
 end
 
 local function spawnCharacter(player)
@@ -237,6 +283,12 @@ attackRemote.OnServerEvent:Connect(function(player, kind)
 	local root = rootOf(player)
 	if not root then return end
 	local facing = if root.CFrame.LookVector.X < 0 then -1 else 1
+	task.spawn(pose, player.Character, POSES[kind])
+
+	task.wait(spec.Windup)   -- 振りかぶってから当たる。判定はこの時点の位置で行う
+	root = rootOf(player)
+	if not root or not canFight(player) then return end
+	now = os.clock()
 	burst(root.Position + Vector3.new(facing * spec.Range * 0.6, 0.5, 0), Color3.fromRGB(255, 255, 255), spec.Range * 0.6)
 
 	for _, target in Players:GetPlayers() do
@@ -258,6 +310,8 @@ attackRemote.OnServerEvent:Connect(function(player, kind)
 					-- キャラクターの動きは本人の端末が計算しているので、吹っ飛びは本人の端末に伝えて動かす
 					knockRemote:FireClient(target, velocity)
 					burst(targetRoot.Position, Color3.fromRGB(255, 120, 60), 3 + power / 25)
+					flash(target.Character)
+					task.spawn(pose, target.Character, POSES.Hit)
 				end
 			end
 		end
