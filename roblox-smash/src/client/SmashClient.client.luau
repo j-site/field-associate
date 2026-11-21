@@ -192,8 +192,11 @@ Players.PlayerRemoving:Connect(function(other)
 end)
 
 while true do
-	for _, other in Players:GetPlayers() do
+	local players = Players:GetPlayers()
+	local cardWidth = if #players <= 4 then 130 elseif #players <= 6 then 104 else 84   -- 人数が増えたらカードを細くする
+	for _, other in players do
 		local card = cardFor(other)
+		card.frame.Size = UDim2.new(0, cardWidth, 1, 0)
 		local percent = other:GetAttribute("Percent") or 0
 		local stocks = other:GetAttribute("Stocks") or 0
 		card.percent.Text = percent .. "%"

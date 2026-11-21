@@ -31,7 +31,7 @@ local CONFIG = {
 	},
 }
 
-local SPAWN_X = { -24, -8, 8, 24 }
+local SPAWN_X = { -30, -21, -12, -4, 4, 12, 21, 30 }   -- 8人まで、重ならずに出現できる
 local SPAWN_Y = 8
 local SPECTATOR_CFRAME = CFrame.new(0, 14, -14)
 
