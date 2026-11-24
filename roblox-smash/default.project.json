@@ -2,8 +2,12 @@
   "name": "sky-ranto",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedStorage": {
+      "SmashShared": { "$path": "src/shared/SmashShared.luau" }
+    },
     "ServerScriptService": {
-      "SmashServer": { "$path": "src/server/SmashServer.server.luau" }
+      "SmashServer": { "$path": "src/server/SmashServer.server.luau" },
+      "BotBrain": { "$path": "src/server/BotBrain.luau" }
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {

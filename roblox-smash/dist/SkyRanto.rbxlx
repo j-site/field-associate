@@ -1,0 +1,1836 @@
+<?xml version="1.0" encoding="utf-8"?>
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+<Meta name="ExplicitAutoJoints">true</Meta>
+<Item class="Workspace" referent="RBX1"><Properties><string name="Name">Workspace</string></Properties></Item>
+<Item class="ReplicatedStorage" referent="RBX3"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="ModuleScript" referent="RBX2"><Properties><string name="Name">SmashShared</string><ProtectedString name="Source"><![CDATA[--!nonstrict
+--[[
+	スカイ乱闘：共有の設定と計算
+	置き場所: ReplicatedStorage の中に ModuleScript として入れ、名前を SmashShared にする
+
+	サーバーとプレイヤー側の両方から使う。Roblox のAPIには依存しない（テストで動かせるようにするため）。
+	ゲームの手ごたえは、ほとんどこのファイルの数字で決まる。
+]]
+
+local Shared = {}
+
+---------------------------------------------------------------- 設定
+
+Shared.Config = {
+	Stocks = 3,              -- 残機
+	MatchSeconds = 150,      -- 1試合の長さ
+	Intermission = 12,       -- 試合前の待ち時間（ファイターを選べる）
+	ReadySeconds = 3,        -- 「3・2・1」
+	ResultSeconds = 8,       -- 結果を表示する時間
+	MinFighters = 4,         -- 人が少ないときは、ボットで合計この人数にする
+	MaxFighters = 8,
+	RespawnDelay = 1.5,      -- やられてから復活するまで
+	ShieldSeconds = 2.5,     -- 復活直後の無敵時間
+	Blast = { Side = 115, Top = 120, Bottom = -50 },   -- ここを越えるとやられる
+	ItemInterval = { 12, 18 },   -- アイテムが出る間隔（秒）
+	HealAmount = 25,         -- 回復アイテムで減る％
+	PowerSeconds = 10,
+	PowerMultiplier = 1.6,
+	LungeLight = 8,          -- 攻撃で少し前に出る速さ
+	LungeSmash = 20,
+}
+
+Shared.Dash = { Speed = 62, Time = 0.16, Cooldown = 1.1 }
+
+-- Damage: たまる％ / Base・Scale: 吹っ飛ぶ強さ = (Base + ％×Scale) ÷ 重さ / Angles: 飛ぶ角度（度）
+-- Windup: ボタンを押してから当たるまで（秒）
+Shared.Attacks = {
+	Light = {
+		Damage = 5, Range = 7.5, Base = 28, Scale = 0.55, Cooldown = 0.32, Windup = 0.04,
+		Angles = { side = 32, up = 82, down = -40 },
+	},
+	Smash = {
+		Damage = 14, Range = 8.5, Base = 58, Scale = 1.25, Cooldown = 1.0, Windup = 0.16,
+		Angles = { side = 40, up = 80, down = -50 },
+	},
+}
+
+-- walk: 走る速さ / jump: ジャンプ力 / damage: 与えるダメージの倍率 / weight: 重いほど飛ばされにくい
+Shared.Fighters = {
+	{ id = "hayate", name = "ハヤテ", info = "速い・軽い", walk = 26, jump = 62, damage = 0.85, weight = 0.85 },
+	{ id = "normal", name = "スタンダード", info = "バランス型", walk = 22, jump = 60, damage = 1.0, weight = 1.0 },
+	{ id = "dossiri", name = "ドッシリ", info = "強い・重い", walk = 18, jump = 56, damage = 1.3, weight = 1.35 },
+}
+
+-- ファイターの目印の色（RGB）
+Shared.SlotColors = {
+	{ 255, 90, 90 }, { 80, 160, 255 }, { 255, 210, 70 }, { 90, 220, 120 },
+	{ 200, 110, 255 }, { 255, 150, 60 }, { 70, 220, 220 }, { 255, 130, 200 },
+}
+
+Shared.BotNames = { "ゴロー", "ミケ", "タロウ", "ハナ", "ソラ", "ダイ", "リン", "ケン" }
+
+---------------------------------------------------------------- ステージ
+
+-- parts: 床や足場 / spawns: 出現位置 / items: アイテムが出る場所 / 値はすべて stud
+Shared.Layouts = {
+	{
+		id = "sky", name = "スカイアイランド",
+		parts = {
+			{ "Main", { 70, 4, 8 }, { 0, 0, 0 }, { 70, 80, 110 }, "Slate" },
+			{ "PlatformLeft", { 16, 1, 8 }, { -20, 9.5, 0 }, { 240, 190, 70 }, "SmoothPlastic" },
+			{ "PlatformRight", { 16, 1, 8 }, { 20, 9.5, 0 }, { 240, 190, 70 }, "SmoothPlastic" },
+			{ "PlatformTop", { 16, 1, 8 }, { 0, 17.5, 0 }, { 240, 190, 70 }, "SmoothPlastic" },
+		},
+		spawns = { { -30, 5 }, { 30, 5 }, { -12, 5 }, { 12, 5 }, { -24, 5 }, { 24, 5 }, { -4, 5 }, { 4, 5 } },
+		items = { { 0, 2 }, { -20, 10 }, { 20, 10 }, { 0, 18 } },
+	},
+	{
+		id = "islands", name = "ふたつの島",
+		parts = {
+			{ "IslandLeft", { 30, 4, 8 }, { -26, 0, 0 }, { 70, 110, 90 }, "Slate" },
+			{ "IslandRight", { 30, 4, 8 }, { 26, 0, 0 }, { 70, 110, 90 }, "Slate" },
+			{ "Middle", { 14, 1, 8 }, { 0, 9, 0 }, { 240, 190, 70 }, "SmoothPlastic" },
+			{ "HighLeft", { 12, 1, 8 }, { -34, 16, 0 }, { 240, 120, 90 }, "SmoothPlastic" },
+			{ "HighRight", { 12, 1, 8 }, { 34, 16, 0 }, { 240, 120, 90 }, "SmoothPlastic" },
+		},
+		spawns = { { -36, 5 }, { 36, 5 }, { -22, 5 }, { 22, 5 }, { -30, 5 }, { 30, 5 }, { -16, 5 }, { 16, 5 } },
+		items = { { 0, 10 }, { -26, 2 }, { 26, 2 }, { -34, 17 }, { 34, 17 } },
+	},
+	{
+		id = "tower", name = "三段タワー",
+		parts = {
+			{ "Low", { 60, 4, 8 }, { 0, 0, 0 }, { 90, 80, 120 }, "Slate" },
+			{ "Mid", { 40, 1.5, 8 }, { 0, 11, 0 }, { 240, 190, 70 }, "SmoothPlastic" },
+			{ "Top", { 22, 1.5, 8 }, { 0, 21, 0 }, { 240, 120, 90 }, "SmoothPlastic" },
+		},
+		spawns = { { -26, 5 }, { 26, 5 }, { -14, 5 }, { 14, 5 }, { -22, 5 }, { 22, 5 }, { -6, 5 }, { 6, 5 } },
+		items = { { 0, 2 }, { 0, 11.75 }, { 0, 21.75 }, { -24, 2 }, { 24, 2 } },
+	},
+}
+
+-- 足場の一覧（上面の高さと、左右の端）。ボットが足場を探すのに使う
+function Shared.platformsOf(layout)
+	local list = {}
+	for _, part in layout.parts do
+		local size, pos = part[2], part[3]
+		table.insert(list, { xmin = pos[1] - size[1] / 2, xmax = pos[1] + size[1] / 2, top = pos[2] + size[2] / 2 })
+	end
+	return list
+end
+
+---------------------------------------------------------------- 戦闘の計算
+
+-- 吹っ飛ぶ速さ（vx, vy）。％が高いほど、重さが軽いほど、遠くへ飛ぶ
+function Shared.knockback(spec, aim, percent, weight, facing)
+	local angle = math.rad(spec.Angles[aim] or spec.Angles.side)
+	local power = (spec.Base + percent * spec.Scale) / (weight or 1)
+	local vx = math.cos(angle) * power
+	if aim == "side" then vx *= facing else vx *= 0.25 * facing end   -- 上・下向きは、ほぼ真上・真下に飛ぶ
+	return vx, math.sin(angle) * power
+end
+
+-- 吹っ飛んでいる間、操作できない時間（秒）
+function Shared.stunSeconds(vx, vy)
+	local speed = math.sqrt(vx * vx + vy * vy)
+	return math.clamp(speed / 400, 0.12, 0.55)
+end
+
+-- 攻撃が当たる範囲か。(ax, ay) は攻撃した人、(tx, ty, tz) は相手の位置
+function Shared.inHitbox(spec, aim, facing, ax, ay, tx, ty, tz)
+	local dx, dy = tx - ax, ty - ay
+	if math.abs(tz) > 6 then return false end
+	if aim == "up" then
+		return math.abs(dx) <= spec.Range * 0.7 and dy >= -1 and dy <= 9
+	elseif aim == "down" then
+		return math.abs(dx) <= spec.Range * 0.7 and dy <= 1 and dy >= -9
+	end
+	return dx * facing > -1.5 and math.abs(dx) <= spec.Range and math.abs(dy) <= 5
+end
+
+function Shared.outOfBounds(x, y)
+	local b = Shared.Config.Blast
+	return math.abs(x) > b.Side or y > b.Top or y < b.Bottom
+end
+
+-- 勝者を決める。list: { { id, stocks, percent, fighting } }。決まらなければ nil（引き分け）
+function Shared.pickWinner(list)
+	local alive = {}
+	for _, f in list do
+		if f.fighting then table.insert(alive, f) end
+	end
+	if #alive == 0 then return nil end
+	if #alive == 1 then return alive[1].id end
+	table.sort(alive, function(a, b)
+		if a.stocks ~= b.stocks then return a.stocks > b.stocks end
+		return a.percent < b.percent
+	end)
+	if alive[1].stocks == alive[2].stocks and alive[1].percent == alive[2].percent then return nil end
+	return alive[1].id
+end
+
+function Shared.fighterById(id)
+	for i, f in Shared.Fighters do
+		if f.id == id then return f, i end
+	end
+	return Shared.Fighters[2], 2
+end
+
+return Shared
+]]></ProtectedString></Properties></Item></Item>
+<Item class="ServerScriptService" referent="RBX6"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX4"><Properties><string name="Name">SmashServer</string><ProtectedString name="Source"><![CDATA[--!nonstrict
+--[[
+	スカイ乱闘：サーバー側
+	置き場所: ServerScriptService の中に Script として入れる（名前は SmashServer）
+	あわせて必要: ServerScriptService に ModuleScript「BotBrain」、ReplicatedStorage に ModuleScript「SmashShared」
+
+	・人が少ないときはボットが参加して、1人でも試合になる
+	・ステージは3種類。試合ごとに変わる
+	・攻撃を当てると％がたまり、％が高いほど大きく吹っ飛ぶ。場外まで飛ばされると残機が1つ減る
+	・アイテム（回復・パワー）が時々出る
+	手ごたえの数字は SmashShared を変えて調整する。
+]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+local CollectionService = game:GetService("CollectionService")
+local PhysicsService = game:GetService("PhysicsService")
+local DataStoreService = game:GetService("DataStoreService")
+
+local Shared = require(ReplicatedStorage:WaitForChild("SmashShared"))
+local BotBrain = require(ServerScriptService:WaitForChild("BotBrain"))
+local C = Shared.Config
+
+local SPECTATOR_CFRAME = CFrame.new(0, 14, -14)
+local FOOT = 3   -- キャラクターの中心から足の裏までの高さ
+
+---------------------------------------------------------------- 通信
+
+local remotes = Instance.new("Folder")
+remotes.Name = "SmashRemotes"
+remotes.Parent = ReplicatedStorage
+
+local function makeRemote(name)
+	local r = Instance.new("RemoteEvent")
+	r.Name = name
+	r.Parent = remotes
+	return r
+end
+local attackRemote = makeRemote("Attack")   -- 本人 → サーバー：攻撃（種類, 向き指定, 左右）
+local selectRemote = makeRemote("Select")   -- 本人 → サーバー：ファイターの選択
+local knockRemote = makeRemote("Knock")     -- サーバー → 本人：吹っ飛ばし（速さ, 操作できない秒数）
+local fxRemote = makeRemote("Fx")           -- サーバー → 全員：演出（種類, ...）
+
+local function makeValue(class, name, initial)
+	local v = Instance.new(class)
+	v.Name = name
+	v.Value = initial
+	v.Parent = remotes
+	return v
+end
+local statusValue = makeValue("StringValue", "Status", "")     -- 画面上の大きな文字
+local phaseValue = makeValue("StringValue", "Phase", "Lobby")  -- Lobby / Ready / Fight / Result
+local stageValue = makeValue("StringValue", "StageName", "")
+local timeValue = makeValue("NumberValue", "TimeLeft", 0)
+
+local fightersFolder = Instance.new("Folder")   -- 全員の状態（％・残機など）。画面の表示に使う
+fightersFolder.Name = "Fighters"
+fightersFolder.Parent = remotes
+
+local function fx(...)
+	fxRemote:FireAllClients(...)
+end
+
+---------------------------------------------------------------- ぶつからない設定・ステージ
+
+pcall(function() PhysicsService:RegisterCollisionGroup("Fighters") end)
+pcall(function() PhysicsService:CollisionGroupSetCollidable("Fighters", "Fighters", false) end)   -- 選手どうしはすり抜ける
+
+for _, name in { "Baseplate", "SmashStage" } do
+	local old = workspace:FindFirstChild(name)
+	if old then old:Destroy() end
+end
+for _, inst in workspace:GetDescendants() do
+	if inst:IsA("SpawnLocation") then inst:Destroy() end
+end
+
+local layout = Shared.Layouts[1]
+local stageFolder = nil
+
+local function color3(rgb)
+	return Color3.fromRGB(rgb[1], rgb[2], rgb[3])
+end
+
+local function block(parent, name, size, position, color, material, transparency)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.Size = Vector3.new(size[1], size[2], size[3])
+	p.Position = Vector3.new(position[1], position[2], position[3])
+	p.Color = color
+	p.Material = material
+	p.Transparency = transparency or 0
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+local function buildStage(newLayout)
+	layout = newLayout
+	if stageFolder then stageFolder:Destroy() end
+	stageFolder = Instance.new("Folder")
+	stageFolder.Name = "SmashStage"
+	stageFolder.Parent = workspace
+	for _, def in newLayout.parts do
+		block(stageFolder, def[1], def[2], def[3], color3(def[4]), Enum.Material[def[5]])
+	end
+	-- 手前と奥に見えない壁を置いて、横から見た2Dの動きにする
+	block(stageFolder, "WallFront", { 600, 600, 2 }, { 0, 100, 5 }, Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, 1)
+	block(stageFolder, "WallBack", { 600, 600, 2 }, { 0, 100, -5 }, Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, 1)
+	-- 観戦台（やられた人が見守る場所）
+	block(stageFolder, "Spectator", { 50, 1, 8 }, { 0, 10, -14 }, Color3.fromRGB(120, 130, 150), Enum.Material.Glass, 0.4)
+	stageValue.Value = newLayout.name
+end
+
+---------------------------------------------------------------- 選手（人とボット）
+
+local phase = "Lobby"
+local fighters = {}      -- [id] = 選手
+local botCount = 0
+
+local function setPhase(p)
+	phase = p
+	phaseValue.Value = p
+end
+
+local function syncFighter(f)
+	local a = f.folder
+	a:SetAttribute("Name", f.name)
+	a:SetAttribute("Percent", math.floor(f.percent))
+	a:SetAttribute("Stocks", f.stocks)
+	a:SetAttribute("Fighting", f.fighting)
+	a:SetAttribute("Type", Shared.Fighters[f.typeIndex].id)
+	a:SetAttribute("Slot", f.slot)
+	a:SetAttribute("Bot", f.kind == "bot")
+	a:SetAttribute("Power", os.clock() < f.powerUntil)
+	a:SetAttribute("KOs", f.kos)
+end
+
+local function newFighter(id, kind, name, player)
+	local folder = Instance.new("Folder")
+	folder.Name = id
+	folder.Parent = fightersFolder
+	local f = {
+		id = id, kind = kind, name = name, player = player, folder = folder, model = nil,
+		percent = 0, stocks = 0, fighting = false, typeIndex = 2, slot = 1, kos = 0,
+		koLock = false, loading = false, lastHitBy = nil, lastHitAt = 0,
+		nextAttack = { Light = 0, Smash = 0 }, nextDash = 0, dashUntil = 0, dashDir = 1,
+		powerUntil = 0, stunUntil = 0, canDouble = true, facing = 1,
+		mind = nil, intent = nil,
+	}
+	fighters[id] = f
+	syncFighter(f)
+	return f
+end
+
+local function removeFighter(f)
+	fighters[f.id] = nil
+	if f.folder then f.folder:Destroy() end
+	if f.kind == "bot" and f.model then f.model:Destroy() end
+end
+
+local function rootOf(f)
+	local character = if f.kind == "bot" then f.model else (f.player and f.player.Character)
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if humanoid and root and humanoid.Health > 0 then
+		return root, humanoid, character
+	end
+	return nil, nil, nil
+end
+
+local function snapshot()
+	local list = {}
+	for _, f in fighters do table.insert(list, f) end
+	return list
+end
+
+local function countFighting()
+	local n, humans = 0, 0
+	for _, f in fighters do
+		if f.fighting then
+			n += 1
+			if f.kind == "player" then humans += 1 end
+		end
+	end
+	return n, humans
+end
+
+---------------------------------------------------------------- 攻撃のモーション
+-- 関節（Motor6D）を動かして、腕を振る・体を傾ける。サーバーで動かすので、ほかのプレイヤーにも見える。
+-- 標準のアバター（R15）用。体型が違うときは何もしない。
+
+-- arm: 腕の振り / lean: 体の傾き（度）。t はその動きにかける秒数
+local POSES = {
+	Light = { { t = 0.05, arm = -30, lean = 5 }, { t = 0.07, arm = 100, lean = -12 }, { t = 0.14, arm = 0, lean = 0 } },
+	Smash = { { t = 0.16, arm = -120, lean = 10 }, { t = 0.07, arm = 110, lean = -25 }, { t = 0.25, arm = 0, lean = 0 } },
+	Hit = { { t = 0.05, arm = -25, lean = 14 }, { t = 0.2, arm = 0, lean = 0 } },   -- やられたときののけぞり
+}
+
+local poseToken = setmetatable({}, { __mode = "k" })
+
+local function pose(character, steps)
+	if not character then return end
+	local shoulder = character:FindFirstChild("RightShoulder", true)
+	local waist = character:FindFirstChild("Waist", true)
+	if not (shoulder and shoulder:IsA("Motor6D") and waist and waist:IsA("Motor6D")) then return end
+
+	for _, joint in { shoulder, waist } do
+		if joint:GetAttribute("BaseC0") == nil then joint:SetAttribute("BaseC0", joint.C0) end   -- 元の位置を覚える
+	end
+	local baseShoulder, baseWaist = shoulder:GetAttribute("BaseC0"), waist:GetAttribute("BaseC0")
+
+	local token = (poseToken[character] or 0) + 1
+	poseToken[character] = token   -- 新しい動きが始まったら、前の動きは打ち切る
+	for _, step in steps do
+		if poseToken[character] ~= token or not shoulder.Parent or not waist.Parent then return end
+		local info = TweenInfo.new(step.t, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(shoulder, info, { C0 = baseShoulder * CFrame.Angles(math.rad(step.arm), 0, 0) }):Play()
+		TweenService:Create(waist, info, { C0 = baseWaist * CFrame.Angles(math.rad(step.lean), 0, 0) }):Play()
+		task.wait(step.t)
+	end
+end
+
+local function flash(character)
+	local h = Instance.new("Highlight")
+	h.FillColor = Color3.fromRGB(255, 60, 40)
+	h.FillTransparency = 0.35
+	h.OutlineTransparency = 1
+	h.Parent = character
+	Debris:AddItem(h, 0.15)
+end
+
+---------------------------------------------------------------- キャラクターの準備
+
+local function setCollisionGroup(character)
+	for _, part in character:GetDescendants() do
+		if part:IsA("BasePart") then part.CollisionGroup = "Fighters" end
+	end
+end
+
+local function applyStats(f, humanoid)
+	local def = Shared.Fighters[f.typeIndex]
+	humanoid.UseJumpPower = true
+	humanoid.WalkSpeed = def.walk
+	humanoid.JumpPower = def.jump
+end
+
+local function prepareCharacter(f, character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then applyStats(f, humanoid) end
+	character:SetAttribute("FighterId", f.id)
+	CollectionService:AddTag(character, "Fighter")
+	setCollisionGroup(character)
+	character.DescendantAdded:Connect(function(inst)
+		if inst:IsA("BasePart") then inst.CollisionGroup = "Fighters" end   -- あとから付いたアクセサリー
+	end)
+
+	local mark = Instance.new("Highlight")   -- 誰がだれか分かる、体のふちの色
+	mark.Name = "Mark"
+	mark.FillTransparency = 1
+	mark.OutlineTransparency = 0.15
+	mark.OutlineColor = color3(Shared.SlotColors[(f.slot - 1) % #Shared.SlotColors + 1])
+	mark.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	mark.Parent = character
+	f.mark = mark
+end
+
+local function spawnCFrame(f)
+	local s = layout.spawns[(f.slot - 1) % #layout.spawns + 1]
+	return CFrame.new(s[1], s[2] + FOOT, 0)
+end
+
+local function giveShield(character, seconds)
+	local ff = Instance.new("ForceField")
+	ff.Parent = character
+	Debris:AddItem(ff, seconds)
+end
+
+---------------------------------------------------------------- 人の出現とやられ
+
+local knockOut
+
+local function onPlayerCharacter(f, character)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	local root = character:WaitForChild("HumanoidRootPart", 10)
+	if not humanoid or not root then return end
+	prepareCharacter(f, character)
+	humanoid.Died:Connect(function() knockOut(f) end)
+
+	RunService.Heartbeat:Wait()   -- 出現位置が決まってから動かす
+	if (phase == "Ready" or phase == "Fight") and not f.fighting then
+		character:PivotTo(SPECTATOR_CFRAME)   -- 試合に出ていない人は観戦台へ
+	else
+		character:PivotTo(spawnCFrame(f))
+		giveShield(character, if f.fighting then C.ShieldSeconds else 1)
+	end
+end
+
+local function loadPlayer(f)
+	if f.loading or not f.player or not f.player.Parent then return end
+	f.loading = true
+	pcall(function() f.player:LoadCharacter() end)
+	f.loading = false
+end
+
+---------------------------------------------------------------- ボット
+
+local BOT_COLORS = {
+	Color3.fromRGB(240, 120, 120), Color3.fromRGB(120, 170, 240), Color3.fromRGB(240, 210, 110),
+	Color3.fromRGB(130, 220, 150), Color3.fromRGB(200, 150, 240), Color3.fromRGB(240, 170, 110),
+	Color3.fromRGB(120, 220, 220), Color3.fromRGB(240, 160, 210),
+}
+
+local function makeBotModel(f)
+	local desc = Instance.new("HumanoidDescription")
+	local c = BOT_COLORS[(f.slot - 1) % #BOT_COLORS + 1]
+	desc.HeadColor, desc.TorsoColor, desc.LeftArmColor, desc.RightArmColor = c, c, c, c
+	desc.LeftLegColor, desc.RightLegColor = c, c
+	local ok, model = pcall(function()
+		return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
+	end)
+	if not ok or not model then return nil end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not root then
+		model:Destroy()
+		return nil
+	end
+	model.Name = f.name
+	humanoid.DisplayName = f.name
+	model.Parent = workspace
+	f.model = model
+	prepareCharacter(f, model)
+	model:PivotTo(spawnCFrame(f))
+	pcall(function() root:SetNetworkOwner(nil) end)   -- 動かすのはサーバー
+	giveShield(model, C.ShieldSeconds)
+	return model
+end
+
+local function respawnBot(f)
+	local root, humanoid, character = rootOf(f)
+	if not root then return end
+	humanoid.PlatformStand = false
+	humanoid.Health = humanoid.MaxHealth
+	character:PivotTo(spawnCFrame(f))
+	root.AssemblyLinearVelocity = Vector3.zero
+	giveShield(character, C.ShieldSeconds)
+end
+
+---------------------------------------------------------------- やられ・復活
+
+function knockOut(f)
+	if f.koLock then return end
+	f.koLock = true
+
+	local root = rootOf(f)
+	fx("KO", if root then root.Position else Vector3.zero, f.name, f.slot)
+
+	if phase == "Fight" and f.fighting then
+		f.stocks -= 1
+		if f.stocks <= 0 then f.fighting = false end
+		local attacker = f.lastHitBy and fighters[f.lastHitBy]
+		if attacker and os.clock() - f.lastHitAt < 8 then   -- 直前に攻撃を当てた人の得点にする
+			attacker.kos += 1
+			syncFighter(attacker)
+		end
+	end
+	f.percent = 0
+	f.lastHitBy = nil
+	f.powerUntil = 0
+	f.stunUntil = 0
+	syncFighter(f)
+
+	task.delay(C.RespawnDelay, function()
+		if fighters[f.id] then
+			if f.kind == "bot" then
+				if f.fighting then respawnBot(f) elseif f.model then f.model:PivotTo(SPECTATOR_CFRAME) end
+			else
+				loadPlayer(f)
+			end
+		end
+		f.koLock = false
+	end)
+end
+
+---------------------------------------------------------------- 攻撃
+
+local function applyKnock(target, vx, vy)
+	local stun = Shared.stunSeconds(vx, vy)
+	target.stunUntil = os.clock() + stun
+	if target.kind == "player" then
+		-- キャラクターの動きは本人の端末が計算しているので、吹っ飛びは本人の端末に伝えて動かす
+		if target.player then knockRemote:FireClient(target.player, Vector3.new(vx, vy, 0), stun) end
+	else
+		local root, humanoid = rootOf(target)
+		if root then
+			humanoid.PlatformStand = true
+			root.AssemblyLinearVelocity = Vector3.new(vx, vy, 0)
+			task.delay(stun, function()
+				if humanoid.Parent then humanoid.PlatformStand = false end
+			end)
+		end
+	end
+end
+
+local function performAttack(f, kind, aim, dir)
+	local spec = Shared.Attacks[kind]
+	if not spec then return end
+	if aim ~= "up" and aim ~= "down" then aim = "side" end
+	if dir ~= 1 and dir ~= -1 then dir = 1 end
+
+	local now = os.clock()
+	if f.koLock or now < f.nextAttack[kind] or now < f.stunUntil then return end   -- 連打の制限はサーバーで見る
+	f.nextAttack[kind] = now + spec.Cooldown
+
+	local root, _, character = rootOf(f)
+	if not root then return end
+	f.facing = dir
+	task.spawn(pose, character, POSES[kind])
+	fx("Swing", root.Position, kind, dir)
+
+	task.wait(spec.Windup)   -- 振りかぶってから当たる。判定はこの時点の位置で行う
+	if phase ~= "Fight" or not f.fighting or f.koLock then return end
+	root = rootOf(f)
+	if not root then return end
+	now = os.clock()
+
+	local def = Shared.Fighters[f.typeIndex]
+	local power = if now < f.powerUntil then C.PowerMultiplier else 1
+	for _, o in snapshot() do
+		if o ~= f and o.fighting and not o.koLock then
+			local targetRoot, _, targetCharacter = rootOf(o)
+			if targetRoot and not targetCharacter:FindFirstChildOfClass("ForceField") then
+				local p, t = root.Position, targetRoot.Position
+				if Shared.inHitbox(spec, aim, dir, p.X, p.Y, t.X, t.Y, t.Z - p.Z) then
+					local damage = spec.Damage * def.damage * power
+					o.percent = math.min(o.percent + damage, 999)
+					o.lastHitBy, o.lastHitAt = f.id, now
+					syncFighter(o)
+
+					local vx, vy = Shared.knockback(spec, aim, o.percent, Shared.Fighters[o.typeIndex].weight, dir)
+					applyKnock(o, vx, vy)
+					fx("Hit", t, math.floor(damage + 0.5), math.sqrt(vx * vx + vy * vy), o.slot)
+					flash(targetCharacter)
+					task.spawn(pose, targetCharacter, POSES.Hit)
+				end
+			end
+		end
+	end
+end
+
+attackRemote.OnServerEvent:Connect(function(player, kind, aim, dir)
+	if type(kind) ~= "string" or type(aim) ~= "string" or type(dir) ~= "number" then return end
+	local f = fighters["p_" .. player.UserId]
+	if f then performAttack(f, kind, aim, if dir < 0 then -1 else 1) end
+end)
+
+selectRemote.OnServerEvent:Connect(function(player, id)
+	if type(id) ~= "string" then return end
+	local f = fighters["p_" .. player.UserId]
+	if not f or f.fighting then return end   -- 試合中は変えられない
+	local _, index = Shared.fighterById(id)
+	f.typeIndex = index
+	local _, humanoid = rootOf(f)
+	if humanoid then applyStats(f, humanoid) end
+	syncFighter(f)
+end)
+
+---------------------------------------------------------------- アイテム
+
+local items = {}   -- { part, kind }
+
+local function clearItems()
+	for _, item in items do item.part:Destroy() end
+	items = {}
+end
+
+local function spawnItem()
+	if #items >= 2 then return end
+	local spot = layout.items[math.random(#layout.items)]
+	local kind = if math.random() < 0.55 then "heal" else "power"
+	local part = Instance.new("Part")
+	part.Name = "Item"
+	part.Shape = Enum.PartType.Ball
+	part.Size = Vector3.new(2.6, 2.6, 2.6)
+	part.Anchored = true
+	part.CanCollide = false
+	part.Material = Enum.Material.Neon
+	part.Color = if kind == "heal" then Color3.fromRGB(90, 230, 130) else Color3.fromRGB(255, 150, 40)
+	part.Position = Vector3.new(spot[1], spot[2] + 2.5, 0)
+	part:SetAttribute("Kind", kind)
+	part.Parent = stageFolder
+	CollectionService:AddTag(part, "Item")   -- 回ったり上下に動く演出は、プレイヤー側で行う
+	table.insert(items, { part = part, kind = kind })
+end
+
+local function checkItemPickup()
+	for i = #items, 1, -1 do
+		local item = items[i]
+		local pos = item.part.Position
+		for _, f in snapshot() do
+			if f.fighting and not f.koLock then
+				local root = rootOf(f)
+				if root and (root.Position - pos).Magnitude < 4.5 then
+					if item.kind == "heal" then
+						f.percent = math.max(0, f.percent - C.HealAmount)
+					else
+						f.powerUntil = os.clock() + C.PowerSeconds
+					end
+					syncFighter(f)
+					fx("Item", pos, item.kind, f.name)
+					item.part:Destroy()
+					table.remove(items, i)
+					break
+				end
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------- 毎フレームの処理
+
+local BOT_THINK = 0.1
+local botTimer = 0
+
+local function facingOf(f, root)
+	local look = root.CFrame.LookVector.X
+	if look > 0.3 then return 1 elseif look < -0.3 then return -1 end
+	return f.facing
+end
+
+local function thinkBot(f, now)
+	local root, humanoid = rootOf(f)
+	if not root or not f.fighting or f.koLock then
+		f.intent = nil
+		return
+	end
+	local stunned = now < f.stunUntil
+	local grounded = humanoid.FloorMaterial ~= Enum.Material.Air
+	if grounded then f.canDouble = true end
+
+	local me = {
+		x = root.Position.X, y = root.Position.Y - FOOT, vy = root.AssemblyLinearVelocity.Y, grounded = grounded,
+		facing = facingOf(f, root), percent = f.percent, canDouble = f.canDouble, canDash = now >= f.nextDash,
+		lightReady = now >= f.nextAttack.Light, smashReady = now >= f.nextAttack.Smash, stunned = stunned,
+	}
+	local enemies = {}
+	for _, o in fighters do
+		if o ~= f and o.fighting and not o.koLock then
+			local r = rootOf(o)
+			if r then table.insert(enemies, { x = r.Position.X, y = r.Position.Y - FOOT, percent = o.percent }) end
+		end
+	end
+
+	local intent = BotBrain.decide(f.mind, me, enemies, Shared.platformsOf(layout), Shared.Attacks, now)
+	f.intent = intent
+	f.facing = intent.dir
+	if stunned then return end
+
+	if intent.jump then
+		if grounded then
+			humanoid.Jump = true
+		elseif f.canDouble then
+			f.canDouble = false
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+	end
+	if intent.dash and now >= f.nextDash then
+		f.nextDash = now + Shared.Dash.Cooldown
+		f.dashUntil = now + Shared.Dash.Time
+		f.dashDir = if intent.move ~= 0 then intent.move else intent.dir
+	end
+	if intent.attack then
+		if grounded then
+			local lunge = if intent.attack == "Smash" then C.LungeSmash else C.LungeLight
+			local v = root.AssemblyLinearVelocity
+			root.AssemblyLinearVelocity = Vector3.new(v.X + intent.dir * lunge, v.Y, 0)
+		end
+		task.spawn(performAttack, f, intent.attack, intent.aim, intent.dir)
+	end
+end
+
+RunService.Heartbeat:Connect(function(dt)
+	local now = os.clock()
+	for _, f in snapshot() do
+		local root, humanoid = rootOf(f)
+		if root then
+			local p = root.Position
+			if not f.koLock and Shared.outOfBounds(p.X, p.Y) then
+				knockOut(f)
+			elseif f.kind == "bot" then
+				if math.abs(p.Z) > 0.05 and math.abs(p.Z) <= 8 then root.CFrame = root.CFrame - Vector3.new(0, 0, p.Z) end   -- 奥行きを固定
+				if now < f.dashUntil then
+					local v = root.AssemblyLinearVelocity
+					root.AssemblyLinearVelocity = Vector3.new(f.dashDir * Shared.Dash.Speed, v.Y * 0.5, 0)
+				end
+				local move = if f.intent and now >= f.stunUntil then f.intent.move else 0
+				humanoid:Move(Vector3.new(move, 0, 0), false)
+			end
+		end
+	end
+	checkItemPickup()
+
+	botTimer += dt
+	if botTimer >= BOT_THINK then
+		botTimer = 0
+		if phase == "Fight" then
+			for _, f in snapshot() do
+				if f.kind == "bot" then thinkBot(f, now) end
+			end
+		end
+	end
+end)
+
+-- パワーアップ中の見た目と表示（ゆっくりでよい）
+task.spawn(function()
+	while true do
+		local now = os.clock()
+		for _, f in snapshot() do
+			local powered = now < f.powerUntil
+			if f.mark then
+				f.mark.FillTransparency = if powered then 0.55 else 1
+				f.mark.FillColor = Color3.fromRGB(255, 160, 40)
+			end
+			if f.folder:GetAttribute("Power") ~= powered then syncFighter(f) end
+		end
+		task.wait(0.3)
+	end
+end)
+
+---------------------------------------------------------------- 記録（勝利数・KO数）
+
+local store = nil
+pcall(function() store = DataStoreService:GetDataStore("SkyRanto_v1") end)
+
+local function loadStats(player, stats)
+	if not store then return end
+	local ok, data = pcall(function() return store:GetAsync("u_" .. player.UserId) end)
+	if ok then
+		if type(data) == "table" then
+			stats.Wins.Value = data.Wins or 0
+			stats.KOs.Value = data.KOs or 0
+		end
+		player:SetAttribute("StatsLoaded", true)   -- 読めなかったときは、保存しない（記録を消さないため）
+	end
+end
+
+local function saveStats(player)
+	local stats = player:FindFirstChild("leaderstats")
+	if not store or not stats or not player:GetAttribute("StatsLoaded") then return end
+	pcall(function()
+		store:SetAsync("u_" .. player.UserId, { Wins = stats.Wins.Value, KOs = stats.KOs.Value })
+	end)
+end
+
+---------------------------------------------------------------- 参加・退出
+
+local function onPlayerAdded(player)
+	local stats = Instance.new("Folder")
+	stats.Name = "leaderstats"
+	for _, name in { "Wins", "KOs" } do
+		local v = Instance.new("IntValue")
+		v.Name = name
+		v.Parent = stats
+	end
+	stats.Parent = player
+	task.spawn(loadStats, player, stats)
+
+	local f = newFighter("p_" .. player.UserId, "player", player.DisplayName, player)
+	player.CharacterAdded:Connect(function(character) onPlayerCharacter(f, character) end)
+	loadPlayer(f)
+end
+
+local function onPlayerRemoving(player)
+	saveStats(player)
+	local f = fighters["p_" .. player.UserId]
+	if f then removeFighter(f) end
+end
+
+Players.CharacterAutoLoads = false   -- 出現はすべてこのスクリプトで管理する
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(onPlayerRemoving)
+for _, player in Players:GetPlayers() do task.spawn(onPlayerAdded, player) end
+
+game:BindToClose(function()
+	for _, player in Players:GetPlayers() do saveStats(player) end
+end)
+
+---------------------------------------------------------------- 試合の進行
+
+local function humanFighters()
+	local list = {}
+	for _, f in fighters do
+		if f.kind == "player" then table.insert(list, f) end
+	end
+	table.sort(list, function(a, b) return a.id < b.id end)
+	return list
+end
+
+local function credit(f)
+	if f.player and f.player.Parent then
+		local stats = f.player:FindFirstChild("leaderstats")
+		if stats then stats.KOs.Value += f.kos end
+	end
+end
+
+local lastLayout = nil
+
+local function chooseLayout()
+	local pick = Shared.Layouts[math.random(#Shared.Layouts)]
+	while pick == lastLayout and #Shared.Layouts > 1 do
+		pick = Shared.Layouts[math.random(#Shared.Layouts)]
+	end
+	lastLayout = pick
+	return pick
+end
+
+local function startMatch()
+	buildStage(chooseLayout())
+	clearItems()
+
+	-- 出る人を決める（人が多いときは先着。残りは観戦）
+	local humans = humanFighters()
+	local entrants = {}
+	for i = 1, math.min(#humans, C.MaxFighters) do table.insert(entrants, humans[i]) end
+	for _, f in humans do f.fighting = false end
+
+	-- ボットで人数をそろえる
+	local bots = math.max(0, math.min(C.MinFighters, C.MaxFighters) - #entrants)
+	for _ = 1, bots do
+		botCount += 1
+		local name = Shared.BotNames[(botCount - 1) % #Shared.BotNames + 1]
+		local f = newFighter("b_" .. botCount, "bot", "BOT " .. name, nil)
+		f.typeIndex = math.random(#Shared.Fighters)
+		f.mind = BotBrain.newMind(0.4 + math.random() * 0.3)
+		table.insert(entrants, f)
+	end
+
+	for i, f in entrants do
+		f.slot, f.fighting, f.stocks, f.percent, f.kos = i, true, C.Stocks, 0, 0
+		f.powerUntil, f.stunUntil, f.koLock = 0, 0, false
+		syncFighter(f)
+	end
+	for _, f in humans do
+		if not f.fighting then syncFighter(f) end
+		task.spawn(loadPlayer, f)
+	end
+	local entered = 0
+	for _, f in entrants do
+		if f.kind == "bot" and not makeBotModel(f) then
+			removeFighter(f)   -- ボットを作れなかったときは、その人数は減らす
+			f.fighting = false
+		else
+			entered += 1
+		end
+	end
+	return entered
+end
+
+local function endMatch(winnerId, reason)
+	setPhase("Result")
+	timeValue.Value = 0
+	local winner = winnerId and fighters[winnerId]
+	if winner then
+		statusValue.Value = winner.name .. " の勝ち！"
+		fx("Win", winner.name, winner.kind == "player")
+		if winner.player then
+			local stats = winner.player:FindFirstChild("leaderstats")
+			if stats then stats.Wins.Value += 1 end
+		end
+	else
+		statusValue.Value = reason or "引き分け"
+		fx("Win", "", false)
+	end
+	for _, f in snapshot() do
+		if f.kind == "player" then credit(f); saveStats(f.player) end
+		f.fighting = false
+		f.kos = if f.kind == "player" then f.kos else 0
+		syncFighter(f)
+	end
+	clearItems()
+	task.wait(C.ResultSeconds)
+end
+
+local function cleanupBots()
+	for _, f in snapshot() do
+		if f.kind == "bot" then removeFighter(f) end
+	end
+end
+
+local function fightLoop()
+	local deadline = os.clock() + C.MatchSeconds
+	local nextItem = os.clock() + C.ItemInterval[1]
+	while true do
+		task.wait(0.25)
+		local alive, humansAlive = countFighting()
+		if #humanFighters() == 0 then return nil, "引き分け" end
+		if alive <= 1 then break end
+		if humansAlive == 0 then
+			-- 人がみんなやられたら、ボットの観戦はせずに終わる
+			local list = {}
+			for _, f in fighters do table.insert(list, { id = f.id, stocks = f.stocks, percent = f.percent, fighting = f.fighting }) end
+			return Shared.pickWinner(list), "ゲームオーバー"
+		end
+		local left = deadline - os.clock()
+		if left <= 0 then break end
+		timeValue.Value = math.ceil(left)
+		statusValue.Value = ""
+		if os.clock() >= nextItem then
+			spawnItem()
+			nextItem = os.clock() + C.ItemInterval[1] + math.random() * (C.ItemInterval[2] - C.ItemInterval[1])
+		end
+	end
+	local list = {}
+	for _, f in fighters do table.insert(list, { id = f.id, stocks = f.stocks, percent = f.percent, fighting = f.fighting }) end
+	return Shared.pickWinner(list), nil
+end
+
+task.spawn(function()
+	buildStage(Shared.Layouts[1])
+	while true do
+		setPhase("Lobby")
+		statusValue.Value = ""
+		timeValue.Value = 0
+		while #humanFighters() == 0 do task.wait(1) end
+
+		local ok = true
+		for t = C.Intermission, 1, -1 do
+			if #humanFighters() == 0 then ok = false; break end
+			statusValue.Value = "まもなく試合開始  " .. t
+			timeValue.Value = t
+			task.wait(1)
+		end
+		local entered = if ok then startMatch() else 0
+		if ok and entered < 2 then
+			-- 対戦相手がそろわなかったとき（ボットを作れなかったなど）は、試合を始めずに少し待つ
+			for _, f in snapshot() do
+				if f.kind == "bot" then removeFighter(f) else f.fighting = false; syncFighter(f) end
+			end
+			statusValue.Value = "対戦相手を集めています…"
+			task.wait(5)
+		elseif ok then
+			setPhase("Ready")
+			for t = C.ReadySeconds, 1, -1 do
+				statusValue.Value = tostring(t)
+				fx("Count", t)
+				task.wait(1)
+			end
+			setPhase("Fight")
+			statusValue.Value = "ファイト！"
+			fx("Count", 0)
+			task.delay(1.5, function()
+				if phase == "Fight" then statusValue.Value = "" end
+			end)
+			local winnerId, reason = fightLoop()
+			endMatch(winnerId, reason)
+			cleanupBots()
+			for _, f in humanFighters() do task.spawn(loadPlayer, f) end   -- 全員をステージに戻す
+			task.wait(1)
+		end
+	end
+end)
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX5"><Properties><string name="Name">BotBrain</string><ProtectedString name="Source"><![CDATA[--!nonstrict
+--[[
+	スカイ乱闘：ボットの頭脳
+	置き場所: ServerScriptService の中に ModuleScript として入れ、名前を BotBrain にする
+
+	「いまの状況」を渡すと、「どう動くか」を返すだけの計算。Roblox のAPIには依存しない。
+]]
+
+local BotBrain = {}
+
+local function sign(n)
+	if n > 0.5 then return 1 elseif n < -0.5 then return -1 end
+	return 0
+end
+
+-- いまの位置の真下にある足場の上面の高さ。なければ nil（場外）
+function BotBrain.supportBelow(platforms, x, y)
+	local best = nil
+	for _, p in platforms do
+		if x >= p.xmin - 1 and x <= p.xmax + 1 and p.top <= y + 3 then
+			if best == nil or p.top > best.top then best = p end
+		end
+	end
+	return best
+end
+
+-- 場外から戻るときの目標地点（いちばん近い足場の、端から少し内側）
+function BotBrain.recoveryTarget(platforms, x, y, preferX)
+	local best, bestDist = nil, math.huge
+	for _, p in platforms do
+		local tx = math.clamp(preferX or x, p.xmin + 3, p.xmax - 3)
+		local dist = math.abs(tx - (preferX or x)) + math.max(0, p.top - y) * 0.6 + math.max(0, y - p.top) * 0.2
+		if preferX then dist += math.abs(tx - x) * 0.05 end
+		if dist < bestDist then best, bestDist = { x = tx, top = p.top }, dist end
+	end
+	return best
+end
+
+function BotBrain.newMind(skill)
+	return { skill = skill or 0.6, nextAttackAt = 0, patience = 0.6, blockedSince = nil, leapUntil = 0, leapX = 0 }
+end
+
+--[[
+	me: { x, y, vy, grounded, facing, percent, canDouble, canDash, lightReady, smashReady, stunned }
+	enemies: { { x, y, percent } }
+	戻り値: { move = -1/0/1, jump, dash, attack = nil/"Light"/"Smash", aim = "side"/"up"/"down", dir = -1/1 }
+]]
+function BotBrain.decide(mind, me, enemies, platforms, attacks, now, rng)
+	rng = rng or math.random
+	local intent = { move = 0, jump = false, dash = false, attack = nil, aim = "side", dir = me.facing }
+	if me.stunned then return intent end
+
+	local support = BotBrain.supportBelow(platforms, me.x, me.y)
+	if not support then
+		-- 場外：足場に向かって戻る
+		local leaping = now < mind.leapUntil
+		local target = BotBrain.recoveryTarget(platforms, me.x, me.y, leaping and mind.leapX or nil)
+		if leaping and me.y < target.top - 8 then target = BotBrain.recoveryTarget(platforms, me.x, me.y) end   -- 落ちすぎたら、普通に戻る
+		intent.move = sign(target.x - me.x)
+		if intent.move ~= 0 then intent.dir = intent.move end
+		if me.vy < 0 and me.canDouble and me.y < target.top + 5 then intent.jump = true end
+		if me.canDash and math.abs(target.x - me.x) > 9 and me.y > target.top - 10 then intent.dash = true end
+		return intent
+	end
+
+	-- いちばん近い相手を狙う
+	local target, bestScore = nil, math.huge
+	for _, e in enemies do
+		local score = math.abs(e.x - me.x) + math.abs(e.y - me.y) * 1.5 - math.min(e.percent, 150) * 0.05
+		if score < bestScore then target, bestScore = e, score end
+	end
+	if not target then return intent end
+
+	local dx, dy = target.x - me.x, target.y - me.y
+	local toward = sign(dx)
+	if toward ~= 0 then intent.dir = toward end
+	local range = attacks.Light.Range
+
+	-- 近づく
+	if math.abs(dx) > range * 0.7 then intent.move = toward end
+
+	-- 足場の端：普通は落ちない。相手が別の足場にいて、しばらく進めないときは、思い切って跳び移る
+	if intent.move ~= 0 then
+		local ahead = me.x + intent.move * 4
+		local atEdge = ahead < support.xmin + 0.5 or ahead > support.xmax - 0.5
+		if atEdge and dy > -4 then
+			if now < mind.leapUntil then
+				local edgeDist = if intent.move > 0 then support.xmax - me.x else me.x - support.xmin
+				if me.grounded and edgeDist < 3 then intent.jump = true end
+			else
+				intent.move = 0
+				mind.blockedSince = mind.blockedSince or now
+				if now - mind.blockedSince > mind.patience and math.abs(dx) < 50 then
+					mind.leapUntil, mind.leapX, mind.blockedSince = now + 1.6, target.x, nil
+					mind.patience = 0.4 + rng() * 1.0
+				end
+			end
+		else
+			mind.blockedSince = nil
+		end
+	else
+		mind.blockedSince = nil
+	end
+
+	-- 相手が上にいるときはジャンプで追いかける
+	if dy > 4.5 then
+		if me.grounded and math.abs(dx) < 22 then
+			intent.jump = true
+		elseif me.canDouble and me.vy < -2 then
+			intent.jump = true
+		end
+	end
+
+	-- うっかり（腕前が低いほど増える）
+	if rng() < (1 - mind.skill) * 0.12 then
+		intent.move, intent.jump = 0, false
+		return intent
+	end
+
+	-- 攻撃
+	local inRange = math.abs(dx) <= range and math.abs(dy) <= 5
+	local aboveRange = math.abs(dx) <= range * 0.7 and dy > 3 and dy <= 9
+	if now >= mind.nextAttackAt and (inRange or aboveRange) then
+		if aboveRange then intent.aim = "up"
+		elseif dy < -3 and not me.grounded then intent.aim = "down" end
+		local wantSmash = me.smashReady and (target.percent > 85 or rng() < 0.15 + mind.skill * 0.15)
+		if wantSmash then
+			intent.attack = "Smash"
+		elseif me.lightReady then
+			intent.attack = "Light"
+		end
+		if intent.attack then
+			mind.nextAttackAt = now + (0.2 + rng() * 0.5) * (1.5 - mind.skill)
+		end
+	end
+	return intent
+end
+
+return BotBrain
+]]></ProtectedString></Properties></Item></Item>
+<Item class="StarterPlayer" referent="RBX10"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX8"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX7"><Properties><string name="Name">SmashClient</string><ProtectedString name="Source"><![CDATA[--!nonstrict
+--[[
+	スカイ乱闘：プレイヤー側
+	置き場所: StarterPlayer > StarterPlayerScripts の中に LocalScript として入れる（名前は SmashClient）
+
+	・横から見たカメラ（全員が映るように、自動で引いたり寄ったりする）
+	・操作：移動 / ジャンプ（2回まで） / 攻撃 / スマッシュ / ダッシュ（スマホはボタン）
+	・画面の表示：残り時間、全員の％と残機、ファイター選択、カウントダウン
+	・演出：ダメージの数字、画面の揺れ、KOの表示、効果音
+]]
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CollectionService = game:GetService("CollectionService")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
+
+local Shared = require(ReplicatedStorage:WaitForChild("SmashShared"))
+local C = Shared.Config
+
+local player = Players.LocalPlayer
+local remotes = ReplicatedStorage:WaitForChild("SmashRemotes")
+local attackRemote = remotes:WaitForChild("Attack")
+local selectRemote = remotes:WaitForChild("Select")
+local knockRemote = remotes:WaitForChild("Knock")
+local fxRemote = remotes:WaitForChild("Fx")
+local statusValue = remotes:WaitForChild("Status")
+local phaseValue = remotes:WaitForChild("Phase")
+local stageValue = remotes:WaitForChild("StageName")
+local timeValue = remotes:WaitForChild("TimeLeft")
+local fightersFolder = remotes:WaitForChild("Fighters")
+
+local myId = "p_" .. player.UserId
+local camera = workspace.CurrentCamera
+local viewport = function() return camera.ViewportSize end
+
+local function color3(rgb) return Color3.fromRGB(rgb[1], rgb[2], rgb[3]) end
+local function slotColor(slot) return color3(Shared.SlotColors[((slot or 1) - 1) % #Shared.SlotColors + 1]) end
+
+---------------------------------------------------------------- 効果音（Robloxに最初から入っている音。なければ無音）
+
+local SOUNDS = {
+	swing = "rbxasset://sounds/swordslash.wav",
+	hit = "rbxasset://sounds/uuhhh.mp3",
+	ko = "rbxasset://sounds/impact_water.mp3",
+	count = "rbxasset://sounds/electronicpingshort.wav",
+	item = "rbxasset://sounds/button.wav",
+	win = "rbxasset://sounds/victory.wav",
+	dash = "rbxasset://sounds/action_swim.mp3",
+}
+
+local function playSound(name, volume, speed)
+	local s = Instance.new("Sound")
+	s.SoundId = SOUNDS[name]
+	s.Volume = volume or 0.5
+	s.PlaybackSpeed = speed or 1
+	s.Parent = SoundService
+	s:Play()
+	Debris:AddItem(s, 4)
+end
+
+---------------------------------------------------------------- 自分のキャラクターの状態
+
+local character, humanoid, root = nil, nil, nil
+local stunUntil = 0
+local stunToken = 0
+local canDouble, airDashUsed = false, false
+local dashUntil, nextDash, dashDir = 0, 0, 1
+local lastFacing = 1
+
+local function isGrounded()
+	return humanoid ~= nil and humanoid.FloorMaterial ~= Enum.Material.Air
+end
+
+local function onCharacter(newCharacter)
+	character = newCharacter
+	humanoid = newCharacter:WaitForChild("Humanoid")
+	root = newCharacter:WaitForChild("HumanoidRootPart")
+	canDouble, airDashUsed = false, false
+	-- 試合の最初に、自分がどれかを頭の上に出す
+	local marker = Instance.new("BillboardGui")
+	marker.Size = UDim2.fromOffset(120, 34)
+	marker.StudsOffset = Vector3.new(0, 5.2, 0)
+	marker.AlwaysOnTop = true
+	marker.Adornee = root
+	marker.Parent = root
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(1, 0, 1, 0)
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.GothamBlack
+	text.TextSize = 22
+	text.TextColor3 = Color3.fromRGB(255, 230, 90)
+	text.TextStrokeTransparency = 0.2
+	text.Text = "▼ あなた"
+	text.Parent = marker
+	Debris:AddItem(marker, 7)
+	humanoid.StateChanged:Connect(function(_, new)
+		if new == Enum.HumanoidStateType.Landed or new == Enum.HumanoidStateType.Running then
+			canDouble, airDashUsed = false, false
+		elseif new == Enum.HumanoidStateType.Freefall then
+			task.delay(0.12, function() canDouble = true end)   -- 1回目のジャンプと区別するための間
+		end
+	end)
+end
+if player.Character then task.spawn(onCharacter, player.Character) end
+player.CharacterAdded:Connect(onCharacter)
+
+local function alive()
+	return character ~= nil and humanoid ~= nil and root ~= nil and humanoid.Health > 0 and root.Parent ~= nil
+end
+
+local function fighterInfo(model)
+	local id = model:GetAttribute("FighterId")
+	return id and fightersFolder:FindFirstChild(id)
+end
+
+---------------------------------------------------------------- 吹っ飛び・奥行きの固定・ダッシュ
+
+knockRemote.OnClientEvent:Connect(function(velocity, stun)
+	if not alive() or typeof(velocity) ~= "Vector3" then return end
+	humanoid:ChangeState(Enum.HumanoidStateType.Freefall)   -- 地面にいると踏ん張ってしまうので、浮かせてから飛ばす
+	root.AssemblyLinearVelocity = velocity
+	local seconds = if type(stun) == "number" then stun else 0.2
+	stunUntil = os.clock() + seconds
+	-- 吹っ飛んでいる間は操作できなくする。反対方向のキーで勢いを打ち消せてしまうのを防ぐ
+	stunToken += 1
+	local token = stunToken
+	humanoid.PlatformStand = true
+	task.delay(seconds, function()
+		if token == stunToken and humanoid and humanoid.Parent then humanoid.PlatformStand = false end
+	end)
+end)
+
+RunService.Heartbeat:Connect(function()
+	if not alive() then return end
+	local p = root.Position
+	-- 観戦台（奥の別の場所）にいるときは固定しない
+	if math.abs(p.Z) > 0.05 and math.abs(p.Z) <= 8 then
+		local v = root.AssemblyLinearVelocity
+		root.CFrame = root.CFrame - Vector3.new(0, 0, p.Z)
+		root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, 0)
+	end
+	if os.clock() < dashUntil then
+		local v = root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity = Vector3.new(dashDir * Shared.Dash.Speed, v.Y * 0.4, 0)
+	end
+	if isGrounded() then airDashUsed = false end
+	local look = root.CFrame.LookVector.X
+	if look > 0.3 then lastFacing = 1 elseif look < -0.3 then lastFacing = -1 end
+end)
+
+---------------------------------------------------------------- 2段ジャンプ
+
+UserInputService.JumpRequest:Connect(function()
+	if alive() and canDouble and humanoid:GetState() == Enum.HumanoidStateType.Freefall and not humanoid.PlatformStand then
+		canDouble = false
+		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+---------------------------------------------------------------- 攻撃・ダッシュ
+
+local function inputDir()
+	local mx = humanoid.MoveDirection.X
+	if mx > 0.3 then return 1 elseif mx < -0.3 then return -1 end
+	return 0
+end
+
+-- 近くの相手がいる向き（向きを入力していないときに、自動で相手のほうを向く）
+local function nearestEnemyDir()
+	local best, bestDist = 0, math.huge
+	for _, model in CollectionService:GetTagged("Fighter") do
+		if model ~= character then
+			local info = fighterInfo(model)
+			local r = model:FindFirstChild("HumanoidRootPart")
+			if info and r and info:GetAttribute("Fighting") then
+				local dx, dy = r.Position.X - root.Position.X, r.Position.Y - root.Position.Y
+				if math.abs(dx) <= 14 and math.abs(dy) <= 8 and math.abs(dx) < bestDist then
+					best, bestDist = if dx >= 0 then 1 else -1, math.abs(dx)
+				end
+			end
+		end
+	end
+	return best
+end
+
+local function face(dir)
+	root.CFrame = CFrame.lookAt(root.Position, root.Position + Vector3.new(dir, 0, 0))
+	lastFacing = dir
+end
+
+local function doAttack(kind)
+	if not alive() or os.clock() < stunUntil then return end
+	local dir = inputDir()
+	if dir == 0 then dir = nearestEnemyDir() end
+	if dir == 0 then dir = lastFacing end
+	local mz = humanoid.MoveDirection.Z   -- 画面の上（W・スティックの上）が -Z
+	local aim = "side"
+	if mz < -0.5 then aim = "up" elseif mz > 0.5 and not isGrounded() then aim = "down" end
+
+	face(dir)
+	if isGrounded() then   -- 攻撃で少し前に出る
+		local v = root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity = Vector3.new(v.X + dir * (if kind == "Smash" then C.LungeSmash else C.LungeLight), v.Y, 0)
+	end
+	attackRemote:FireServer(kind, aim, dir)
+end
+
+local function doDash()
+	local now = os.clock()
+	if not alive() or now < nextDash or now < stunUntil then return end
+	local grounded = isGrounded()
+	if not grounded and airDashUsed then return end   -- 空中のダッシュは、着地するまで1回
+	local dir = inputDir()
+	if dir == 0 then dir = lastFacing end
+	if not grounded then airDashUsed = true end
+	dashDir, dashUntil, nextDash = dir, now + Shared.Dash.Time, now + Shared.Dash.Cooldown
+	face(dir)
+	playSound("dash", 0.4, 1.3)
+end
+
+-- キーボード・マウス・コントローラー
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	local t, k = input.UserInputType, input.KeyCode
+	if t == Enum.UserInputType.MouseButton1 or k == Enum.KeyCode.J or k == Enum.KeyCode.ButtonX then
+		doAttack("Light")
+	elseif t == Enum.UserInputType.MouseButton2 or k == Enum.KeyCode.K or k == Enum.KeyCode.E or k == Enum.KeyCode.ButtonY then
+		doAttack("Smash")
+	elseif k == Enum.KeyCode.LeftShift or k == Enum.KeyCode.L or k == Enum.KeyCode.ButtonB then
+		doDash()
+	end
+end)
+
+-- スマホのボタンは、画面の部品を作ったあとで置く（下の「スマホのボタン」）
+
+---------------------------------------------------------------- カメラ（全員が映るように自動で調整）
+
+local focus = Vector3.new(0, 8, 0)
+local distance = 70
+local shake = 0
+
+local function frameFighters()
+	local minX, maxX, minY, maxY, n = math.huge, -math.huge, math.huge, -math.huge, 0
+	for _, model in CollectionService:GetTagged("Fighter") do
+		local info = fighterInfo(model)
+		local r = model:FindFirstChild("HumanoidRootPart")
+		if info and r and info:GetAttribute("Fighting") then
+			-- 遠くへ飛ばされた人のせいで、画面が広がりすぎないようにする
+			local x, y = math.clamp(r.Position.X, -75, 75), math.clamp(r.Position.Y, -22, 65)
+			minX, maxX, minY, maxY, n = math.min(minX, x), math.max(maxX, x), math.min(minY, y), math.max(maxY, y), n + 1
+		end
+	end
+	if n == 0 then
+		if alive() then
+			return Vector3.new(root.Position.X * 0.5, 6, 0), 62
+		end
+		return Vector3.new(0, 8, 0), 70
+	end
+	local vs = viewport()
+	local aspect = math.max(vs.X / math.max(vs.Y, 1), 0.5)
+	local fit = 0.93   -- 視野角50度のとき、距離1あたりに見える高さ
+	local needW = (maxX - minX + 38) / (fit * aspect)
+	local needH = (maxY - minY + 30) / fit
+	return Vector3.new((minX + maxX) / 2, (minY + maxY) / 2 + 3, 0), math.clamp(math.max(needW, needH, 56), 56, 150)
+end
+
+RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
+	local targetFocus, targetDistance = frameFighters()
+	focus = focus:Lerp(targetFocus, math.min(dt * 5, 1))
+	distance += (targetDistance - distance) * math.min(dt * 3, 1)
+	shake *= math.exp(-9 * dt)
+	local offset = Vector3.new((math.random() - 0.5) * shake, (math.random() - 0.5) * shake, 0)
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = 50
+	camera.CFrame = CFrame.lookAt(focus + Vector3.new(0, 4, distance) + offset, focus + offset)
+end)
+
+---------------------------------------------------------------- 画面の部品
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "SmashHud"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local uiScale = Instance.new("UIScale")   -- 画面の大きさに合わせて、表示の大きさを変える
+uiScale.Parent = gui
+local function updateScale()
+	local vs = viewport()
+	uiScale.Scale = math.clamp(math.min(vs.X / 1100, vs.Y / 650), 0.65, 1.3)
+end
+updateScale()
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+
+local function label(parent, size, position, textSize, text)
+	local l = Instance.new("TextLabel")
+	l.Size = size
+	l.Position = position
+	l.BackgroundTransparency = 1
+	l.Font = Enum.Font.GothamBlack
+	l.TextSize = textSize
+	l.TextColor3 = Color3.new(1, 1, 1)
+	l.TextStrokeTransparency = 0.35
+	l.Text = text or ""
+	l.Parent = parent
+	return l
+end
+
+local function round(parent, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius)
+	c.Parent = parent
+end
+
+-- 上：ステージ名、残り時間、ひとこと
+local stageLabel = label(gui, UDim2.new(1, 0, 0, 18), UDim2.new(0, 0, 0, 10), 15)
+stageLabel.TextColor3 = Color3.fromRGB(230, 235, 245)
+local timerLabel = label(gui, UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 28), 34)
+local bannerLabel = label(gui, UDim2.new(1, 0, 0, 60), UDim2.new(0, 0, 0.16, 0), 46)
+
+local function updateTop()
+	local phase = phaseValue.Value
+	stageLabel.Text = if phase == "Lobby" and stageValue.Value == "" then "" else stageValue.Value
+	if phase == "Fight" then
+		local t = math.max(timeValue.Value, 0)
+		timerLabel.Text = ("%d:%02d"):format(t // 60, t % 60)
+		timerLabel.TextColor3 = if t <= 10 then Color3.fromRGB(255, 90, 80) else Color3.new(1, 1, 1)
+	else
+		timerLabel.Text = ""
+	end
+	bannerLabel.Text = statusValue.Value
+end
+statusValue.Changed:Connect(updateTop)
+timeValue.Changed:Connect(updateTop)
+stageValue.Changed:Connect(updateTop)
+
+-- 操作の案内
+local helpPanel = Instance.new("Frame")
+helpPanel.Size = UDim2.new(0, 330, 0, 150)
+helpPanel.Position = UDim2.new(1, -346, 0, 70)
+helpPanel.BackgroundColor3 = Color3.fromRGB(20, 26, 40)
+helpPanel.BackgroundTransparency = 0.25
+helpPanel.Parent = gui
+round(helpPanel, 10)
+local helpText = label(helpPanel, UDim2.new(1, -20, 1, -16), UDim2.new(0, 10, 0, 8), 15)
+helpText.Font = Enum.Font.GothamBold
+helpText.TextXAlignment = Enum.TextXAlignment.Left
+helpText.TextYAlignment = Enum.TextYAlignment.Top
+helpText.TextWrapped = true
+helpText.Text = if UserInputService.TouchEnabled
+	then "【あそびかた】\n相手の％を上げて、画面の外へ吹っ飛ばそう！\n・攻撃 / 強攻撃 / ダッシュ：右下のボタン\n・ジャンプは空中でもう1回できる\n・スティックを上に入れながら攻撃で、上に飛ばせる"
+	else "【あそびかた】\n相手の％を上げて、画面の外へ吹っ飛ばそう！\nA・D：移動　スペース：ジャンプ（2回まで）\nクリック / J：攻撃　K / E / 右クリック：強攻撃\nShift / L：ダッシュ　W+攻撃：上に飛ばす"
+local helpToken = 0
+local function showHelp(seconds)
+	helpToken += 1
+	local token = helpToken
+	helpPanel.Visible = true
+	if seconds then
+		task.delay(seconds, function()
+			if token == helpToken then helpPanel.Visible = false end
+		end)
+	end
+end
+
+-- ファイター選択（待ち時間のあいだだけ出る）
+local selectPanel = Instance.new("Frame")
+selectPanel.Size = UDim2.new(0, 230, 0, 40 + #Shared.Fighters * 74)
+selectPanel.Position = UDim2.new(0, 16, 0.5, -(40 + #Shared.Fighters * 74) / 2)
+selectPanel.BackgroundColor3 = Color3.fromRGB(20, 26, 40)
+selectPanel.BackgroundTransparency = 0.2
+selectPanel.Parent = gui
+round(selectPanel, 12)
+label(selectPanel, UDim2.new(1, 0, 0, 36), UDim2.new(0, 0, 0, 4), 20, "ファイターを選ぼう")
+
+local selectButtons = {}
+for i, def in Shared.Fighters do
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1, -20, 0, 64)
+	b.Position = UDim2.new(0, 10, 0, 40 + (i - 1) * 74)
+	b.BackgroundColor3 = Color3.fromRGB(50, 62, 90)
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 16
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Text = ("%s\n%s"):format(def.name, def.info)
+	b.AutoButtonColor = true
+	b.Parent = selectPanel
+	round(b, 8)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = Color3.fromRGB(255, 220, 90)
+	stroke.Enabled = false
+	stroke.Parent = b
+	b.Activated:Connect(function() selectRemote:FireServer(def.id) end)
+	selectButtons[def.id] = stroke
+end
+
+local function updateSelect()
+	local mine = fightersFolder:FindFirstChild(myId)
+	local chosen = mine and mine:GetAttribute("Type")
+	for id, stroke in selectButtons do stroke.Enabled = (id == chosen) end
+end
+
+-- カウントダウン
+local countLabel = label(gui, UDim2.new(1, 0, 0, 160), UDim2.new(0, 0, 0.3, 0), 120)
+countLabel.TextTransparency = 1
+countLabel.TextStrokeTransparency = 1
+
+local function showCount(text, color)
+	countLabel.Text = text
+	countLabel.TextColor3 = color
+	countLabel.TextSize = 70
+	countLabel.TextTransparency = 0
+	countLabel.TextStrokeTransparency = 0.3
+	TweenService:Create(countLabel, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextSize = 150, TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+end
+
+-- 画面の赤いふち（自分がやられたとき）
+local vignette = Instance.new("Frame")
+vignette.Size = UDim2.new(1, 0, 1, 0)
+vignette.BackgroundColor3 = Color3.fromRGB(255, 40, 30)
+vignette.BackgroundTransparency = 1
+vignette.BorderSizePixel = 0
+vignette.Parent = gui
+
+local function flashScreen(strength)
+	vignette.BackgroundTransparency = 1 - strength
+	TweenService:Create(vignette, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
+end
+
+-- スマホのボタン（タッチできる端末だけに出る）
+local function touchButton(title, position, size, color, fn)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.fromOffset(size, size)
+	b.Position = position
+	b.BackgroundColor3 = color
+	b.BackgroundTransparency = 0.25
+	b.Font = Enum.Font.GothamBlack
+	b.TextSize = 18
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Text = title
+	b.AutoButtonColor = true
+	b.Visible = UserInputService.TouchEnabled
+	b.Parent = gui
+	round(b, size // 2)
+	b.InputBegan:Connect(function(input)   -- 指が触れた瞬間に反応させる（離すのを待たない）
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then fn() end
+	end)
+	return b
+end
+touchButton("攻撃", UDim2.new(1, -110, 1, -250), 88, Color3.fromRGB(230, 90, 80), function() doAttack("Light") end)
+touchButton("強攻撃", UDim2.new(1, -210, 1, -200), 88, Color3.fromRGB(240, 150, 50), function() doAttack("Smash") end)
+touchButton("ダッシュ", UDim2.new(1, -110, 1, -350), 88, Color3.fromRGB(70, 150, 230), doDash)
+
+-- 全員の％と残機
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(1, 0, 0, 96)
+bar.Position = UDim2.new(0, 0, 1, -108)
+bar.BackgroundTransparency = 1
+bar.Parent = gui
+local layout = Instance.new("UIListLayout")
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Padding = UDim.new(0, 8)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = bar
+
+local cards = {}   -- [id] = { frame, bar, percent, name, info }
+
+local function makeCard(id)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 140, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(28, 34, 52)
+	frame.BackgroundTransparency = 0.15
+	frame.Parent = bar
+	round(frame, 10)
+	local colorBar = Instance.new("Frame")
+	colorBar.Size = UDim2.new(1, 0, 0, 6)
+	colorBar.BorderSizePixel = 0
+	colorBar.Parent = frame
+	round(colorBar, 3)
+	if id == myId then
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.new(1, 1, 1)
+		stroke.Thickness = 2
+		stroke.Parent = frame
+	end
+	local card = {
+		frame = frame, bar = colorBar,
+		percent = label(frame, UDim2.new(1, 0, 0, 42), UDim2.new(0, 0, 0, 8), 34),
+		name = label(frame, UDim2.new(1, -10, 0, 18), UDim2.new(0, 5, 0, 52), 14),
+		info = label(frame, UDim2.new(1, -10, 0, 20), UDim2.new(0, 5, 0, 70), 14),
+	}
+	card.name.TextTruncate = Enum.TextTruncate.AtEnd
+	cards[id] = card
+	return card
+end
+
+local function updateCards()
+	local list = fightersFolder:GetChildren()
+	table.sort(list, function(a, b) return (a:GetAttribute("Slot") or 0) < (b:GetAttribute("Slot") or 0) end)
+	local seen = {}
+	local width = if #list <= 4 then 140 elseif #list <= 6 then 112 else 92
+	for i, info in list do
+		local id = info.Name
+		seen[id] = true
+		local card = cards[id] or makeCard(id)
+		local fighting = info:GetAttribute("Fighting")
+		local percent = info:GetAttribute("Percent") or 0
+		local stocks = info:GetAttribute("Stocks") or 0
+		card.frame.LayoutOrder = i
+		card.frame.Size = UDim2.new(0, width, 1, 0)
+		card.frame.BackgroundTransparency = if fighting or phaseValue.Value == "Lobby" then 0.15 else 0.6
+		card.bar.BackgroundColor3 = slotColor(info:GetAttribute("Slot"))
+		card.percent.Text = percent .. "%"
+		-- ％が高いほど赤くして、危ないことが一目でわかるようにする
+		card.percent.TextColor3 = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 70, 50), math.min(percent / 150, 1))
+		card.name.Text = info:GetAttribute("Name") or ""
+		if phaseValue.Value == "Lobby" then
+			card.info.Text = (Shared.fighterById(info:GetAttribute("Type")).name)
+		elseif fighting then
+			card.info.Text = string.rep("●", stocks) .. (if info:GetAttribute("Power") then " パワー" else "")
+			card.info.TextColor3 = if info:GetAttribute("Power") then Color3.fromRGB(255, 170, 60) else Color3.new(1, 1, 1)
+		else
+			card.info.Text = "脱落"
+			card.info.TextColor3 = Color3.fromRGB(180, 180, 190)
+		end
+	end
+	for id, card in cards do
+		if not seen[id] then
+			card.frame:Destroy()
+			cards[id] = nil
+		end
+	end
+end
+
+task.spawn(function()
+	while true do
+		updateCards()
+		updateSelect()
+		task.wait(0.1)
+	end
+end)
+
+---------------------------------------------------------------- 状態の切り替え
+
+local function onPhase()
+	local phase = phaseValue.Value
+	selectPanel.Visible = (phase == "Lobby")
+	if phase == "Lobby" then
+		showHelp(nil)
+	elseif phase == "Fight" then
+		showHelp(7)
+	elseif phase == "Ready" or phase == "Result" then
+		helpPanel.Visible = false
+	end
+	updateTop()
+end
+phaseValue.Changed:Connect(onPhase)
+onPhase()
+
+---------------------------------------------------------------- 演出
+
+local function toScreen(worldPos)
+	local v, onScreen = camera:WorldToViewportPoint(worldPos)
+	return Vector2.new(v.X, v.Y), onScreen and v.Z > 0
+end
+
+local function popup(position, text, color, size, rise)
+	local l = label(gui, UDim2.fromOffset(240, 60), UDim2.fromOffset(position.X - 120, position.Y - 30), size, text)
+	l.TextColor3 = color
+	TweenService:Create(l, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.fromOffset(position.X - 120, position.Y - 30 - rise), TextTransparency = 1, TextStrokeTransparency = 1,
+	}):Play()
+	Debris:AddItem(l, 1)
+end
+
+local function mySlot()
+	local mine = fightersFolder:FindFirstChild(myId)
+	return mine and mine:GetAttribute("Slot")
+end
+
+local handlers = {}
+
+function handlers.Swing(position, kind)
+	playSound("swing", 0.35, if kind == "Smash" then 0.8 else 1.15)
+end
+
+function handlers.Hit(position, damage, power, targetSlot)
+	local screen = toScreen(position + Vector3.new(0, 3, 0))
+	local big = damage >= 12
+	popup(screen, "-" .. damage, if big then Color3.fromRGB(255, 120, 60) else Color3.fromRGB(255, 240, 160), if big then 44 else 32, 50)
+	playSound("hit", math.clamp(power / 220, 0.25, 0.8), if big then 0.8 else 1.1)
+	local mine = targetSlot == mySlot()
+	shake = math.max(shake, math.clamp(power / 90, 0.3, 3) * (if mine then 1.4 else 1))
+	if mine then flashScreen(math.clamp(power / 400, 0.15, 0.45)) end
+end
+
+function handlers.KO(position, name)
+	local screen = toScreen(position)
+	local vs = viewport()
+	-- 画面の外でやられたときは、その方向の画面のふちに出す
+	local x = math.clamp(screen.X, 80, vs.X - 80)
+	local y = math.clamp(screen.Y, 80, vs.Y - 150)
+	popup(Vector2.new(x, y), "KO!", Color3.fromRGB(255, 80, 70), 64, 30)
+	popup(Vector2.new(x, y + 40), name, Color3.new(1, 1, 1), 20, 20)
+	playSound("ko", 0.7, 0.9)
+	shake = math.max(shake, 3.5)
+end
+
+function handlers.Item(position, kind, name)
+	playSound("item", 0.6, if kind == "heal" then 1.2 else 0.9)
+	popup(toScreen(position), if kind == "heal" then "回復！" else "パワー！", if kind == "heal" then Color3.fromRGB(110, 240, 150) else Color3.fromRGB(255, 170, 60), 36, 50)
+end
+
+function handlers.Count(n)
+	if n > 0 then
+		showCount(tostring(n), Color3.new(1, 1, 1))
+		playSound("count", 0.5, 1)
+	else
+		showCount("ファイト！", Color3.fromRGB(255, 220, 90))
+		playSound("count", 0.6, 1.6)
+	end
+end
+
+function handlers.Win(name, isHuman)
+	if name ~= "" then
+		playSound("win", 0.7, 1)
+		if name == player.DisplayName then showCount("YOU WIN!", Color3.fromRGB(255, 220, 90)) end
+	end
+end
+
+fxRemote.OnClientEvent:Connect(function(kind, ...)
+	local fn = handlers[kind]
+	if fn then fn(...) end
+end)
+
+-- アイテムを回して、上下に動かす
+local itemBase = setmetatable({}, { __mode = "k" })
+RunService.RenderStepped:Connect(function()
+	local t = os.clock()
+	for _, part in CollectionService:GetTagged("Item") do
+		local base = itemBase[part]
+		if not base then
+			base = part.CFrame
+			itemBase[part] = base
+		end
+		part.CFrame = base * CFrame.Angles(0, t * 2, 0) + Vector3.new(0, math.sin(t * 3) * 0.7, 0)
+	end
+end)
+]]></ProtectedString></Properties></Item></Item><Item class="StarterCharacterScripts" referent="RBX9"><Properties><string name="Name">StarterCharacterScripts</string></Properties></Item></Item>
+</roblox>
