@@ -22,8 +22,8 @@ def cdata(text):
     return "<![CDATA[" + text.replace("]]>", "]]]]><![CDATA[>") + "]]>"
 
 
-def item(cls, name, source=None, children=()):
-    props = f'<string name="Name">{name}</string>'
+def item(cls, name, source=None, children=(), extra=""):
+    props = f'<string name="Name">{name}</string>' + extra
     if source is not None:
         props += f'<ProtectedString name="Source">{cdata(source)}</ProtectedString>'
     inner = "".join(children)
@@ -39,7 +39,7 @@ tree = [
         item("Script", "SmashServer", read("src/server/SmashServer.server.luau")),
         item("ModuleScript", "BotBrain", read("src/server/BotBrain.luau")),
     ]),
-    item("StarterPlayer", "StarterPlayer", children=[
+    item("StarterPlayer", "StarterPlayer", extra='<bool name="EnableMouseLockOption">false</bool>', children=[
         item("StarterPlayerScripts", "StarterPlayerScripts", children=[
             item("LocalScript", "SmashClient", read("src/client/SmashClient.client.luau")),
         ]),

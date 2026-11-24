@@ -226,6 +226,25 @@ Mock.run(15)
 check("全員が退出しても、止まらずエラーも出ない", #Mock.errors == 0, Mock.errors[1])
 check("全員が退出すると、待機に戻る", phase() == "Lobby")
 
+---------------------------------------------------------------- 定員を超えたとき（定員を2人にして、3人で入る）
+
+Shared.Config.MaxFighters, Shared.Config.MinFighters = 2, 2
+local a, b, c = Mock.addPlayer("A", 11), Mock.addPlayer("B", 12), Mock.addPlayer("C", 13)
+Mock.run(60, 1 / 30, function() return phase() == "Ready" end)
+Mock.run(2)
+local fightingNow = 0
+for _, ch in remotes.Fighters:GetChildren() do if ch:GetAttribute("Fighting") then fightingNow += 1 end end
+check("定員を超えたときは、定員の人数だけが試合に出る", fightingNow == 2, fightingNow)
+check("試合に出ない人は、観戦台に出る", fighterAttr("p_13", "Fighting") == false and rootOf(c) ~= nil and rootOf(c).Position.Z == -14, rootOf(c) and tostring(rootOf(c).Position))
+check("定員を超えたときも、ボットは加わらない", (function()
+	for _, ch in remotes.Fighters:GetChildren() do if ch:GetAttribute("Bot") then return false end end
+	return true
+end)())
+Mock.removePlayer(a); Mock.removePlayer(b); Mock.removePlayer(c)
+Mock.run(15)
+Shared.Config.MaxFighters, Shared.Config.MinFighters = 8, 4
+check("定員の確認のあとも、エラーが出ない", #Mock.errors == 0, Mock.errors[1])
+
 for _, fn in Mock.boundToClose do fn() end
 
 print(("\n%d 件成功 / %d 件失敗"):format(passed, failed))

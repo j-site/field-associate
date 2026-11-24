@@ -20,6 +20,7 @@ local TweenService = game:GetService("TweenService")
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local DataStoreService = game:GetService("DataStoreService")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local Shared = require(ReplicatedStorage:WaitForChild("SmashShared"))
 local BotBrain = require(ServerScriptService:WaitForChild("BotBrain"))
@@ -66,6 +67,9 @@ local function fx(...)
 end
 
 ---------------------------------------------------------------- ぶつからない設定・ステージ
+
+-- Shift キー（ダッシュ）が、Roblox 標準の「マウスロック」（向きが勝手に変わる）と衝突しないようにする
+pcall(function() StarterPlayer.EnableMouseLockOption = false end)
 
 pcall(function() PhysicsService:RegisterCollisionGroup("Fighters") end)
 pcall(function() PhysicsService:CollisionGroupSetCollidable("Fighters", "Fighters", false) end)   -- 選手どうしはすり抜ける
@@ -399,10 +403,12 @@ local function applyKnock(target, vx, vy)
 	else
 		local root, humanoid = rootOf(target)
 		if root then
+			target.stunToken = (target.stunToken or 0) + 1
+			local token = target.stunToken
 			humanoid.PlatformStand = true
 			root.AssemblyLinearVelocity = Vector3.new(vx, vy, 0)
 			task.delay(stun, function()
-				if humanoid.Parent then humanoid.PlatformStand = false end
+				if token == target.stunToken and humanoid.Parent then humanoid.PlatformStand = false end   -- あとから重なった分を打ち切らない
 			end)
 		end
 	end
@@ -525,7 +531,7 @@ end
 
 ---------------------------------------------------------------- 毎フレームの処理
 
-local BOT_THINK = 0.1
+local BOT_THINK = Shared.BotThink   -- ボットが状況を見て動きを決める間隔（長いほど反応が遅い）
 local botTimer = 0
 
 local function facingOf(f, root)
@@ -737,7 +743,7 @@ local function startMatch()
 		local name = Shared.BotNames[(botCount - 1) % #Shared.BotNames + 1]
 		local f = newFighter("b_" .. botCount, "bot", "BOT " .. name, nil)
 		f.typeIndex = math.random(#Shared.Fighters)
-		f.mind = BotBrain.newMind(0.4 + math.random() * 0.3)
+		f.mind = BotBrain.newMind(Shared.BotSkill[1] + math.random() * (Shared.BotSkill[2] - Shared.BotSkill[1]))
 		table.insert(entrants, f)
 	end
 
@@ -836,16 +842,21 @@ task.spawn(function()
 			timeValue.Value = t
 			task.wait(1)
 		end
-		local entered = if ok then startMatch() else 0
+		local entered = 0
+		if ok then
+			setPhase("Ready")   -- 出現の前に切り替える（試合に出ない人を、観戦台へ送るため）
+			entered = startMatch()
+		end
 		if ok and entered < 2 then
 			-- 対戦相手がそろわなかったとき（ボットを作れなかったなど）は、試合を始めずに少し待つ
 			for _, f in snapshot() do
 				if f.kind == "bot" then removeFighter(f) else f.fighting = false; syncFighter(f) end
 			end
+			setPhase("Lobby")
 			statusValue.Value = "対戦相手を集めています…"
+			for _, f in humanFighters() do task.spawn(loadPlayer, f) end   -- 観戦台に送った人も、ステージに戻す
 			task.wait(5)
 		elseif ok then
-			setPhase("Ready")
 			for t = C.ReadySeconds, 1, -1 do
 				statusValue.Value = tostring(t)
 				fx("Count", t)

@@ -1,1 +1,3 @@
 test/_combined.luau
+test/_server_wrapped.luau
+test/_probe.luau

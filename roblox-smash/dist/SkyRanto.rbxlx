@@ -40,11 +40,11 @@ Shared.Dash = { Speed = 62, Time = 0.16, Cooldown = 1.1 }
 -- Windup: ボタンを押してから当たるまで（秒）
 Shared.Attacks = {
 	Light = {
-		Damage = 5, Range = 7.5, Base = 28, Scale = 0.55, Cooldown = 0.32, Windup = 0.04,
+		Damage = 5, Range = 7.5, Base = 24, Scale = 0.38, Cooldown = 0.32, Windup = 0.04,
 		Angles = { side = 32, up = 82, down = -40 },
 	},
 	Smash = {
-		Damage = 14, Range = 8.5, Base = 58, Scale = 1.25, Cooldown = 1.0, Windup = 0.16,
+		Damage = 14, Range = 8.5, Base = 46, Scale = 0.8, Cooldown = 1.0, Windup = 0.16,
 		Angles = { side = 40, up = 80, down = -50 },
 	},
 }
@@ -61,6 +61,10 @@ Shared.SlotColors = {
 	{ 255, 90, 90 }, { 80, 160, 255 }, { 255, 210, 70 }, { 90, 220, 120 },
 	{ 200, 110, 255 }, { 255, 150, 60 }, { 70, 220, 220 }, { 255, 130, 200 },
 }
+
+-- ボットの腕前の範囲（0〜1。大きいほど強い）と、状況を見て動きを決める間隔（秒。長いほど反応が遅い）
+Shared.BotSkill = { 0.15, 0.4 }
+Shared.BotThink = 0.22
 
 Shared.BotNames = { "ゴロー", "ミケ", "タロウ", "ハナ", "ソラ", "ダイ", "リン", "ケン" }
 
@@ -194,6 +198,7 @@ local TweenService = game:GetService("TweenService")
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local DataStoreService = game:GetService("DataStoreService")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local Shared = require(ReplicatedStorage:WaitForChild("SmashShared"))
 local BotBrain = require(ServerScriptService:WaitForChild("BotBrain"))
@@ -240,6 +245,9 @@ local function fx(...)
 end
 
 ---------------------------------------------------------------- ぶつからない設定・ステージ
+
+-- Shift キー（ダッシュ）が、Roblox 標準の「マウスロック」（向きが勝手に変わる）と衝突しないようにする
+pcall(function() StarterPlayer.EnableMouseLockOption = false end)
 
 pcall(function() PhysicsService:RegisterCollisionGroup("Fighters") end)
 pcall(function() PhysicsService:CollisionGroupSetCollidable("Fighters", "Fighters", false) end)   -- 選手どうしはすり抜ける
@@ -573,10 +581,12 @@ local function applyKnock(target, vx, vy)
 	else
 		local root, humanoid = rootOf(target)
 		if root then
+			target.stunToken = (target.stunToken or 0) + 1
+			local token = target.stunToken
 			humanoid.PlatformStand = true
 			root.AssemblyLinearVelocity = Vector3.new(vx, vy, 0)
 			task.delay(stun, function()
-				if humanoid.Parent then humanoid.PlatformStand = false end
+				if token == target.stunToken and humanoid.Parent then humanoid.PlatformStand = false end   -- あとから重なった分を打ち切らない
 			end)
 		end
 	end
@@ -699,7 +709,7 @@ end
 
 ---------------------------------------------------------------- 毎フレームの処理
 
-local BOT_THINK = 0.1
+local BOT_THINK = Shared.BotThink   -- ボットが状況を見て動きを決める間隔（長いほど反応が遅い）
 local botTimer = 0
 
 local function facingOf(f, root)
@@ -911,7 +921,7 @@ local function startMatch()
 		local name = Shared.BotNames[(botCount - 1) % #Shared.BotNames + 1]
 		local f = newFighter("b_" .. botCount, "bot", "BOT " .. name, nil)
 		f.typeIndex = math.random(#Shared.Fighters)
-		f.mind = BotBrain.newMind(0.4 + math.random() * 0.3)
+		f.mind = BotBrain.newMind(Shared.BotSkill[1] + math.random() * (Shared.BotSkill[2] - Shared.BotSkill[1]))
 		table.insert(entrants, f)
 	end
 
@@ -1010,16 +1020,21 @@ task.spawn(function()
 			timeValue.Value = t
 			task.wait(1)
 		end
-		local entered = if ok then startMatch() else 0
+		local entered = 0
+		if ok then
+			setPhase("Ready")   -- 出現の前に切り替える（試合に出ない人を、観戦台へ送るため）
+			entered = startMatch()
+		end
 		if ok and entered < 2 then
 			-- 対戦相手がそろわなかったとき（ボットを作れなかったなど）は、試合を始めずに少し待つ
 			for _, f in snapshot() do
 				if f.kind == "bot" then removeFighter(f) else f.fighting = false; syncFighter(f) end
 			end
+			setPhase("Lobby")
 			statusValue.Value = "対戦相手を集めています…"
+			for _, f in humanFighters() do task.spawn(loadPlayer, f) end   -- 観戦台に送った人も、ステージに戻す
 			task.wait(5)
 		elseif ok then
-			setPhase("Ready")
 			for t = C.ReadySeconds, 1, -1 do
 				statusValue.Value = tostring(t)
 				fx("Count", t)
@@ -1179,7 +1194,7 @@ end
 
 return BotBrain
 ]]></ProtectedString></Properties></Item></Item>
-<Item class="StarterPlayer" referent="RBX10"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX8"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX7"><Properties><string name="Name">SmashClient</string><ProtectedString name="Source"><![CDATA[--!nonstrict
+<Item class="StarterPlayer" referent="RBX10"><Properties><string name="Name">StarterPlayer</string><bool name="EnableMouseLockOption">false</bool></Properties><Item class="StarterPlayerScripts" referent="RBX8"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX7"><Properties><string name="Name">SmashClient</string><ProtectedString name="Source"><![CDATA[--!nonstrict
 --[[
 	スカイ乱闘：プレイヤー側
 	置き場所: StarterPlayer > StarterPlayerScripts の中に LocalScript として入れる（名前は SmashClient）
@@ -1411,7 +1426,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		doAttack("Light")
 	elseif t == Enum.UserInputType.MouseButton2 or k == Enum.KeyCode.K or k == Enum.KeyCode.E or k == Enum.KeyCode.ButtonY then
 		doAttack("Smash")
-	elseif k == Enum.KeyCode.LeftShift or k == Enum.KeyCode.L or k == Enum.KeyCode.ButtonB then
+	elseif k == Enum.KeyCode.LeftShift or k == Enum.KeyCode.Q or k == Enum.KeyCode.L or k == Enum.KeyCode.ButtonB then
 		doDash()
 	end
 end)
@@ -1706,7 +1721,7 @@ local function updateCards()
 			card.info.Text = string.rep("●", stocks) .. (if info:GetAttribute("Power") then " パワー" else "")
 			card.info.TextColor3 = if info:GetAttribute("Power") then Color3.fromRGB(255, 170, 60) else Color3.new(1, 1, 1)
 		else
-			card.info.Text = "脱落"
+			card.info.Text = "観戦"
 			card.info.TextColor3 = Color3.fromRGB(180, 180, 190)
 		end
 	end

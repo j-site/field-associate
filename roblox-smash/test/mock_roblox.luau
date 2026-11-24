@@ -337,6 +337,7 @@ UserInputService._props.TouchEnabled = false
 local ContextActionService = service("ContextActionService")
 function ContextActionService.BindAction(_, name, fn) Mock.actions = Mock.actions or {}; Mock.actions[name] = fn end
 local SoundService = service("SoundService")
+local StarterPlayer = service("StarterPlayer")
 local PhysicsService = service("PhysicsService")
 function PhysicsService.RegisterCollisionGroup() end
 function PhysicsService.CollisionGroupSetCollidable() end

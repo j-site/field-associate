@@ -1,12 +1,13 @@
 --!nonstrict
 --[[
 	ボット同士の試合シミュレーション（簡易な物理）。手ごたえの数字を調整するために使う。
-	実行: luau test/sim.luau [試合数]
+	実行: luau test/sim.luau   （試合数と「人間くらいの腕前」を決めるなら -a 60 0.3）
 	Roblox の本物の物理とは違うので、数字は目安。KOの出やすさ・場外からの復帰・試合の長さを見る。
 ]]
 local Shared = require("../src/shared/SmashShared")
 local BotBrain = require("../src/server/BotBrain")
 
+BOT_SKILL, BOT_THINK = { 0.15, 0.4 }, 0.22
 local G, DT, FOOT = 196.2, 1 / 60, 3
 local C = Shared.Config
 
@@ -18,7 +19,7 @@ local function newFighter(i, layout, typeIdx)
 		percent = 0, stocks = C.Stocks, fighting = true, shieldUntil = C.ShieldSeconds,
 		stunUntil = 0, dashUntil = 0, dashDir = 1, nextDash = 0, canDouble = true,
 		nextAttack = { Light = 0, Smash = 0 }, pending = nil, lastHitBy = nil, lastHitAt = -99,
-		respawnAt = nil, mind = BotBrain.newMind(0.55 + math.random() * 0.35), move = 0, intent = nil, nextThink = math.random() * 0.1,
+		respawnAt = nil, mind = BotBrain.newMind(BOT_SKILL[1] + math.random() * (BOT_SKILL[2] - BOT_SKILL[1])), thinkEvery = BOT_THINK, move = 0, intent = nil, nextThink = math.random() * 0.1,
 		stuckX = 0, stuckT = 0, offstageTime = 0,
 	}
 end
@@ -28,6 +29,10 @@ local function runMatch(layout, seed, verbose)
 	local plats = Shared.platformsOf(layout)
 	local fs = {}
 	for i = 1, 4 do fs[i] = newFighter(i, layout, math.random(1, 3)) end
+	if HUMAN then   -- 1人目を「人間くらいの腕前」にする（反応が遅く、ミスが多い）
+		fs[1].mind = BotBrain.newMind(HUMAN_SKILL)
+		fs[1].thinkEvery = 0.22
+	end
 	local stat = { kos = 0, selfKOs = 0, percentAtKO = 0, firstKO = nil, attacks = 0, hits = 0, stuck = 0, recoveries = 0, recoveryFails = 0 }
 	local t = 0
 	local function supportTop(f)
@@ -91,7 +96,7 @@ local function runMatch(layout, seed, verbose)
 					local stunned = t < f.stunUntil
 					-- ボットの判断（0.1秒ごと）
 					if t >= f.nextThink then
-						f.nextThink = t + 0.1
+						f.nextThink = t + f.thinkEvery
 						local enemies = {}
 						for _, o in fs do
 							if o ~= f and o.fighting and o.respawnAt == nil then table.insert(enemies, { x = o.x, y = o.y - FOOT, percent = o.percent }) end
@@ -168,8 +173,13 @@ local function runMatch(layout, seed, verbose)
 	return stat
 end
 
-VERBOSE = true
-local n = 30
+VERBOSE = false
+local args = { ... }   -- 実行: luau test/sim.luau -a [試合数] [人間の腕前 0〜1] [ボットの腕前の下限] [上限] [ボットの反応の間隔（秒）]
+BOT_SKILL = { tonumber(args[3]) or Shared.BotSkill[1], tonumber(args[4]) or Shared.BotSkill[2] }
+BOT_THINK = tonumber(args[5]) or Shared.BotThink
+local n = tonumber(args[1]) or 30
+HUMAN_SKILL = tonumber(args[2])
+HUMAN = HUMAN_SKILL ~= nil and HUMAN_SKILL > 0
 local total = { kos = 0, selfKOs = 0, percentAtKO = 0, duration = 0, timedOut = 0, firstKO = 0, firstKOn = 0, attacks = 0, hits = 0, stuck = 0, draws = 0 }
 local byLayout = {}
 for i = 1, n do
@@ -180,6 +190,7 @@ for i = 1, n do
 	b.n += 1; b.dur += s.duration; b.kos += s.kos; b.self += s.selfKOs
 	total.kos += s.kos; total.selfKOs += s.selfKOs; total.percentAtKO += s.percentAtKO; total.duration += s.duration
 	total.attacks += s.attacks; total.hits += s.hits; total.stuck += s.stuck
+	if s.winner == 1 then total.humanWins = (total.humanWins or 0) + 1 end
 	if s.timedOut then total.timedOut += 1 end
 	if s.winner == nil then total.draws += 1 end
 	if s.firstKO then total.firstKO += s.firstKO; total.firstKOn += 1 end
@@ -191,4 +202,8 @@ print(("KOされたときの平均の％ %.0f ／ 最初のKOまで %.0f 秒"):f
 print(("攻撃 %.0f 回 → 命中 %.0f 回（命中率 %.0f%%）／ 1試合あたりの「動かなくなった」%.2f 回"):format(total.attacks / n, total.hits / n, 100 * total.hits / math.max(1, total.attacks), total.stuck / n))
 for id, b in byLayout do
 	print(("  %-8s 試合時間 %.0f 秒 / KO %.1f 回 / 自滅 %.1f 回"):format(id, b.dur / b.n, b.kos / b.n, b.self / b.n))
+end
+
+if HUMAN then
+	print(("【人間くらいの腕前（腕前 %.2f・反応0.22秒）が、ボット3体と戦った結果】勝率 %.0f%%（4人の平等なら 25%%）"):format(HUMAN_SKILL, 100 * (total.humanWins or 0) / n))
 end

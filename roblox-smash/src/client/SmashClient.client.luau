@@ -230,7 +230,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		doAttack("Light")
 	elseif t == Enum.UserInputType.MouseButton2 or k == Enum.KeyCode.K or k == Enum.KeyCode.E or k == Enum.KeyCode.ButtonY then
 		doAttack("Smash")
-	elseif k == Enum.KeyCode.LeftShift or k == Enum.KeyCode.L or k == Enum.KeyCode.ButtonB then
+	elseif k == Enum.KeyCode.LeftShift or k == Enum.KeyCode.Q or k == Enum.KeyCode.L or k == Enum.KeyCode.ButtonB then
 		doDash()
 	end
 end)
@@ -525,7 +525,7 @@ local function updateCards()
 			card.info.Text = string.rep("●", stocks) .. (if info:GetAttribute("Power") then " パワー" else "")
 			card.info.TextColor3 = if info:GetAttribute("Power") then Color3.fromRGB(255, 170, 60) else Color3.new(1, 1, 1)
 		else
-			card.info.Text = "脱落"
+			card.info.Text = "観戦"
 			card.info.TextColor3 = Color3.fromRGB(180, 180, 190)
 		end
 	end

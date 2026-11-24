@@ -36,11 +36,11 @@ Shared.Dash = { Speed = 62, Time = 0.16, Cooldown = 1.1 }
 -- Windup: ボタンを押してから当たるまで（秒）
 Shared.Attacks = {
 	Light = {
-		Damage = 5, Range = 7.5, Base = 28, Scale = 0.55, Cooldown = 0.32, Windup = 0.04,
+		Damage = 5, Range = 7.5, Base = 24, Scale = 0.38, Cooldown = 0.32, Windup = 0.04,
 		Angles = { side = 32, up = 82, down = -40 },
 	},
 	Smash = {
-		Damage = 14, Range = 8.5, Base = 58, Scale = 1.25, Cooldown = 1.0, Windup = 0.16,
+		Damage = 14, Range = 8.5, Base = 46, Scale = 0.8, Cooldown = 1.0, Windup = 0.16,
 		Angles = { side = 40, up = 80, down = -50 },
 	},
 }
@@ -57,6 +57,10 @@ Shared.SlotColors = {
 	{ 255, 90, 90 }, { 80, 160, 255 }, { 255, 210, 70 }, { 90, 220, 120 },
 	{ 200, 110, 255 }, { 255, 150, 60 }, { 70, 220, 220 }, { 255, 130, 200 },
 }
+
+-- ボットの腕前の範囲（0〜1。大きいほど強い）と、状況を見て動きを決める間隔（秒。長いほど反応が遅い）
+Shared.BotSkill = { 0.15, 0.4 }
+Shared.BotThink = 0.22
 
 Shared.BotNames = { "ゴロー", "ミケ", "タロウ", "ハナ", "ソラ", "ダイ", "リン", "ケン" }
 
